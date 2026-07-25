@@ -264,9 +264,9 @@ DATAHUB_MCP_URL=http://127.0.0.1:8000/mcp
 - Run only one Lifeboat evidence-producing vertical slice at a time because its receipt filenames are intentionally stable. Cross-demo concurrency is safe through separate namespaces and state roots: `coordinator-concurrency-live-002` succeeded in parallel with Forget-Me-Graph.
 - Persistent data is limited to the assigned project state root. No shared/global reset is implemented.
 
-## Live gate closeout and remaining milestone
+## Live gate closeout and Milestone C candidate
 
-Milestone B is closed for exact deployed candidate `f00c48362bcb6d09737c2809f89dea7675682075`:
+Milestone B remains closed for exact deployed candidate `f00c48362bcb6d09737c2809f89dea7675682075`:
 
 - reset completed with exactly eight dataset soft deletes and all three controls retained unchanged;
 - readiness changed from HTTP 200 to 503 with the explicit tombstone;
@@ -276,18 +276,87 @@ Milestone B is closed for exact deployed candidate `f00c48362bcb6d09737c2809f89d
 - retry `coordinator-milestone-b-restore-003` restored all eight datasets, verified every required MCP lineage edge, completed supported `globalTags` writeback/reread, and returned readiness to HTTP 200;
 - `coordinator-concurrency-live-002` later succeeded alongside Forget-Me-Graph, and the read-only post-evidence snapshot reproduced the final aggregate receipt hash exactly.
 
-There is no remaining shared-DataHub blocker. The remaining project milestone is the judge-facing executable recovery workflow:
+The exact locally verified Milestone C product candidate is `c92488300023fc65660499b3406fd2e4db76fcbc`. It has not been deployed. The current live application remains the Milestone B candidate above, and all coordinator-owned live receipts and hashes remain authoritative.
 
-1. build the disposable local outage/recovery estate and at least three real idempotent adapters;
-2. connect live DataHub-derived context to the deterministic recovery planner;
-3. add explicit approval, execution retry/resume, validation gates, and retained step evidence;
-4. export judge-ready JSON/Markdown plan and report examples;
-5. complete the incident/graph/plan/approval/execution/report UI and rehearse the under-three-minute demo.
+### Judge workflow delivered
 
-This documentation-only update did not change product code, deploy, access AWS/EC2, open tunnels, or handle a token.
+- A confirmed disposable outage removes only six recovery targets from a project-scoped DuckDB/file estate. `raw.customers` remains a healthy prerequisite and the unrelated `inventory.forecast` branch remains present and excluded.
+- The existing deterministic compiler produces six steps in five dependency waves, bound to the unchanged fixture fingerprint `72accff2049653af2a7134d41559d3bb0e8ad9a27edefe2ed986155b85dc524b`.
+- Execution is disabled until an incident commander approves the exact persisted `plan_id`; mismatched and absent approvals fail closed.
+- Four real local adapter families execute: Parquet snapshot restore, DuckDB SQL transforms, deterministic Python feature/model builds, and a report refresh.
+- Required existence, schema, row-count, checksum, business-rule, freshness, artifact-load, metric-threshold, and input-fingerprint validations block consumers on failure.
+- The file-backed run ledger persists before and after every step. Resume reuses stable idempotency keys and skips steps already marked verified.
+- A no-build single-page recovery console is served at `/`; CLI and JSON APIs expose the same initialize, outage, plan, approval, execute/resume, state, and report flow.
+- Deterministic judge examples are committed under `examples/`, and `docs/DEMO_RUNBOOK.md` gives a timed 2:35 recording path.
+
+DataHub behavior remains truthful:
+
+- when the current project state contains a verified live vertical-slice receipt for the exact graph fingerprint, new recovery plans record `context_evidence.mode=verified_live_datahub_mcp` and bind the receipt path/hash;
+- otherwise local runs clearly record `captured_datahub_fixture` and do not claim a fresh live read;
+- after all local steps verify, a configured live run uses the existing supported `globalTags` UPSERT plus immediate MCP reread and attaches the resulting receipt hash;
+- with no `DATAHUB_TOKEN`, the local workflow stays runnable and records `datahub_outcome.status=not_configured`; no write is claimed.
+
+### Exact local commands
+
+```powershell
+python -m pip install -e ".[dev]"
+python scripts/generate_demo_snapshot.py
+python scripts/generate_examples.py
+python -m lineage_lifeboat.cli demo-run --run-id judge-demo-001 --approved-by demo-incident-commander --confirm-project lineage-lifeboat
+python -m lineage_lifeboat
+```
+
+Open `http://127.0.0.1:8101/` for the judge console. The separate approval/resume CLI path is:
+
+```powershell
+python -m lineage_lifeboat.cli demo-initialize --confirm-project lineage-lifeboat
+python -m lineage_lifeboat.cli demo-outage --confirm-project lineage-lifeboat
+python -m lineage_lifeboat.cli demo-plan --run-id judge-demo-001
+python -m lineage_lifeboat.cli demo-approve --run-id judge-demo-001 --plan-id <plan-id-from-previous-command> --approved-by demo-incident-commander
+python -m lineage_lifeboat.cli demo-execute --run-id judge-demo-001
+```
+
+Verification commands and exact results for `c92488300023fc65660499b3406fd2e4db76fcbc`:
+
+```powershell
+ruff check app tests scripts
+python -m compileall -q app scripts
+python -m pytest --cov=lineage_lifeboat --cov-report=term-missing
+python scripts/verify_judge_demo.py
+```
+
+- Ruff: passed.
+- Compileall: passed.
+- Pytest: 48 passed in 38.96 seconds; 84% aggregate coverage, including 89% workflow and 92% estate/adapters.
+- Clean working-tree judge verifier: 6/6 steps verified in 2.02 seconds, below the three-minute ceiling.
+- Deterministic regeneration: all three committed example hashes remained byte-for-byte unchanged.
+- Exact `git archive c924883...` packaging smoke: wheel built and installed, packaged `static/index.html` verified, and the archived-source judge workflow verified 6/6 steps in 4.51 seconds.
+- Served-page probe: `/` and `/api/demo/state` returned HTTP 200; the ASGI browser-journey regression completes initialization through verified recovery. Screenshot-level in-app browser QA could not run because the host browser runtime twice exited on `windows sandbox helper_unknown_error`; this is a local Codex tooling limitation, not an application failure.
+
+Deterministic committed example hashes:
+
+| Artifact | SHA-256 |
+|---|---|
+| `examples/recovery-plan.json` | `cbd3c58fb553bb3a3f3d145462152b870535395d4cc335811837727762e34c0a` |
+| `examples/recovery-report.json` | `ad9807428bcf171bac45b09532b19001431235a7c91df0311713ba29e5eb589e` |
+| `examples/recovery-report.md` | `bf12c075667e5b9ae4f28317e44df2c720f1e7446132ab1e316d0f096c8937aa` |
+
+Runtime evidence remains ignored by Git and is written only under the project state root:
+
+```text
+<APP_STATE_DIR>/demo-estate/receipts/demo-initialize-receipt.json
+<APP_STATE_DIR>/demo-estate/receipts/demo-outage-receipt.json
+<APP_STATE_DIR>/recovery-runs/<run-id>/run.json
+<APP_STATE_DIR>/recovery-runs/<run-id>/recovery-report.json
+<APP_STATE_DIR>/recovery-runs/<run-id>/recovery-report.md
+<APP_STATE_DIR>/datahub-receipts/writeback-receipt.json
+```
+
+There is no remaining local implementation blocker for the judge workflow. Remaining portfolio work is coordinator-owned promotion/rehearsal of the combined live candidate, capture of live UI/writeback evidence, and final submission recording. This milestone did not deploy, access AWS/EC2, open a tunnel, or handle a token.
 
 ## Promotion and rollback
 
-- Current deployed application code/image: exact candidate `f00c48362bcb6d09737c2809f89dea7675682075`; no Milestone B promotion remains pending.
-- Roll back application code/image only if necessary: previous candidate `12ca7b9a10222a55cd79f24c72fd800ebe0b0d47`.
-- DataHub fixture rollback: use the confirmed `reset-datahub` command from candidate `f00c48362bcb6d09737c2809f89dea7675682075`; do not use the reset implementation from `12ca7b9a...`, and never use a global DataHub reset.
+- Current deployed application code/image: exact Milestone B candidate `f00c48362bcb6d09737c2809f89dea7675682075`.
+- Proposed Milestone C product candidate: `c92488300023fc65660499b3406fd2e4db76fcbc`; locally verified only, not deployed.
+- Application rollback after a future Milestone C promotion: return to `f00c48362bcb6d09737c2809f89dea7675682075`.
+- DataHub fixture rollback remains the confirmed `reset-datahub` command from candidate `f00c48362bcb6d09737c2809f89dea7675682075`; never use the reset implementation from `12ca7b9a...`, and never use a global DataHub reset.
