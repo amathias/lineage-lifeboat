@@ -1,0 +1,200 @@
+{
+  "source_instance": "datahub-core-demo",
+  "captured_at": "2026-07-24T12:00:00Z",
+  "assets": [
+    {
+      "urn": "urn:li:dataset:(urn:li:dataPlatform:duckdb,lifeboat.raw.orders,PROD)",
+      "display_name": "raw.orders",
+      "artifact_type": "dataset",
+      "platform": "duckdb",
+      "domain": "Demo / Lineage Lifeboat",
+      "tags": ["project-lineage-lifeboat"],
+      "availability": "unavailable",
+      "owner": "urn:li:corpuser:data-platform",
+      "adapter": "snapshot_restore",
+      "adapter_parameters": {
+        "snapshot": "demo/snapshots/raw_orders.parquet",
+        "table": "raw.orders"
+      },
+      "validations": [
+        {"kind": "exists"},
+        {"kind": "schema"},
+        {"kind": "row_count", "parameters": {"minimum": 1}}
+      ],
+      "risk": "medium",
+      "requires_approval": true
+    },
+    {
+      "urn": "urn:li:dataset:(urn:li:dataPlatform:duckdb,lifeboat.raw.customers,PROD)",
+      "display_name": "raw.customers",
+      "artifact_type": "dataset",
+      "platform": "duckdb",
+      "domain": "Demo / Lineage Lifeboat",
+      "tags": ["project-lineage-lifeboat"],
+      "availability": "healthy",
+      "owner": "urn:li:corpuser:data-platform",
+      "adapter": null,
+      "validations": [
+        {"kind": "exists"},
+        {"kind": "schema"}
+      ]
+    },
+    {
+      "urn": "urn:li:dataset:(urn:li:dataPlatform:duckdb,lifeboat.analytics.stg_orders,PROD)",
+      "display_name": "analytics.stg_orders",
+      "artifact_type": "dataset",
+      "platform": "duckdb",
+      "domain": "Demo / Lineage Lifeboat",
+      "tags": ["project-lineage-lifeboat"],
+      "availability": "unavailable",
+      "owner": "urn:li:corpuser:analytics-engineering",
+      "adapter": "sql_transform",
+      "adapter_parameters": {"model": "stg_orders"},
+      "validations": [
+        {"kind": "exists"},
+        {"kind": "schema"},
+        {"kind": "checksum"}
+      ]
+    },
+    {
+      "urn": "urn:li:dataset:(urn:li:dataPlatform:duckdb,lifeboat.analytics.customer_revenue,PROD)",
+      "display_name": "analytics.customer_revenue",
+      "artifact_type": "dataset",
+      "platform": "duckdb",
+      "domain": "Demo / Lineage Lifeboat",
+      "tags": ["project-lineage-lifeboat"],
+      "availability": "unavailable",
+      "owner": "urn:li:corpuser:analytics-engineering",
+      "adapter": "sql_transform",
+      "adapter_parameters": {"model": "customer_revenue"},
+      "validations": [
+        {"kind": "exists"},
+        {"kind": "schema"},
+        {"kind": "business_rule", "parameters": {"rule": "revenue_nonnegative"}}
+      ]
+    },
+    {
+      "urn": "urn:li:dataset:(urn:li:dataPlatform:featurestore,lifeboat.features.customer_value,PROD)",
+      "display_name": "features.customer_value",
+      "artifact_type": "feature",
+      "platform": "featurestore",
+      "domain": "Demo / Lineage Lifeboat",
+      "tags": ["project-lineage-lifeboat"],
+      "availability": "unavailable",
+      "owner": "urn:li:corpuser:ml-platform",
+      "adapter": "python_build",
+      "adapter_parameters": {"job": "customer_value"},
+      "validations": [
+        {"kind": "exists"},
+        {"kind": "freshness", "parameters": {"maximum_age_seconds": 300}}
+      ]
+    },
+    {
+      "urn": "urn:li:mlModel:(urn:li:dataPlatform:mlflow,lifeboat.churn_model,PROD)",
+      "display_name": "models.churn_model",
+      "artifact_type": "model",
+      "platform": "mlflow",
+      "domain": "Demo / Lineage Lifeboat",
+      "tags": ["project-lineage-lifeboat"],
+      "availability": "unavailable",
+      "owner": "urn:li:corpuser:ml-platform",
+      "adapter": "python_build",
+      "adapter_parameters": {"job": "churn_model"},
+      "validations": [
+        {"kind": "artifact_load"},
+        {"kind": "metric_threshold", "parameters": {"metric": "accuracy", "minimum": 0.7}}
+      ]
+    },
+    {
+      "urn": "urn:li:dashboard:(looker,lifeboat.executive_revenue)",
+      "display_name": "dashboards.executive_revenue",
+      "artifact_type": "dashboard",
+      "platform": "looker",
+      "domain": "Demo / Lineage Lifeboat",
+      "tags": ["project-lineage-lifeboat"],
+      "availability": "unavailable",
+      "owner": "urn:li:corpuser:business-intelligence",
+      "adapter": "report_refresh",
+      "adapter_parameters": {"report": "executive_revenue"},
+      "validations": [
+        {"kind": "exists"},
+        {"kind": "input_fingerprint"}
+      ]
+    },
+    {
+      "urn": "urn:li:dataset:(urn:li:dataPlatform:duckdb,lifeboat.inventory.forecast,PROD)",
+      "display_name": "inventory.forecast",
+      "artifact_type": "dataset",
+      "platform": "duckdb",
+      "domain": "Demo / Lineage Lifeboat",
+      "tags": ["project-lineage-lifeboat"],
+      "availability": "healthy",
+      "owner": "urn:li:corpuser:supply-chain",
+      "adapter": null,
+      "validations": []
+    }
+  ],
+  "edges": [
+    {
+      "upstream_urn": "urn:li:dataset:(urn:li:dataPlatform:duckdb,lifeboat.raw.orders,PROD)",
+      "downstream_urn": "urn:li:dataset:(urn:li:dataPlatform:duckdb,lifeboat.analytics.stg_orders,PROD)",
+      "evidence": {
+        "source": "datahub_mcp",
+        "tool": "get_lineage",
+        "upstream_urn": "urn:li:dataset:(urn:li:dataPlatform:duckdb,lifeboat.raw.orders,PROD)",
+        "downstream_urn": "urn:li:dataset:(urn:li:dataPlatform:duckdb,lifeboat.analytics.stg_orders,PROD)"
+      }
+    },
+    {
+      "upstream_urn": "urn:li:dataset:(urn:li:dataPlatform:duckdb,lifeboat.analytics.stg_orders,PROD)",
+      "downstream_urn": "urn:li:dataset:(urn:li:dataPlatform:duckdb,lifeboat.analytics.customer_revenue,PROD)",
+      "evidence": {
+        "source": "datahub_mcp",
+        "tool": "get_lineage",
+        "upstream_urn": "urn:li:dataset:(urn:li:dataPlatform:duckdb,lifeboat.analytics.stg_orders,PROD)",
+        "downstream_urn": "urn:li:dataset:(urn:li:dataPlatform:duckdb,lifeboat.analytics.customer_revenue,PROD)"
+      }
+    },
+    {
+      "upstream_urn": "urn:li:dataset:(urn:li:dataPlatform:duckdb,lifeboat.raw.customers,PROD)",
+      "downstream_urn": "urn:li:dataset:(urn:li:dataPlatform:duckdb,lifeboat.analytics.customer_revenue,PROD)",
+      "evidence": {
+        "source": "datahub_mcp",
+        "tool": "get_lineage",
+        "upstream_urn": "urn:li:dataset:(urn:li:dataPlatform:duckdb,lifeboat.raw.customers,PROD)",
+        "downstream_urn": "urn:li:dataset:(urn:li:dataPlatform:duckdb,lifeboat.analytics.customer_revenue,PROD)"
+      }
+    },
+    {
+      "upstream_urn": "urn:li:dataset:(urn:li:dataPlatform:duckdb,lifeboat.analytics.customer_revenue,PROD)",
+      "downstream_urn": "urn:li:dataset:(urn:li:dataPlatform:featurestore,lifeboat.features.customer_value,PROD)",
+      "evidence": {
+        "source": "datahub_mcp",
+        "tool": "get_lineage",
+        "upstream_urn": "urn:li:dataset:(urn:li:dataPlatform:duckdb,lifeboat.analytics.customer_revenue,PROD)",
+        "downstream_urn": "urn:li:dataset:(urn:li:dataPlatform:featurestore,lifeboat.features.customer_value,PROD)"
+      }
+    },
+    {
+      "upstream_urn": "urn:li:dataset:(urn:li:dataPlatform:featurestore,lifeboat.features.customer_value,PROD)",
+      "downstream_urn": "urn:li:mlModel:(urn:li:dataPlatform:mlflow,lifeboat.churn_model,PROD)",
+      "evidence": {
+        "source": "datahub_mcp",
+        "tool": "get_lineage",
+        "upstream_urn": "urn:li:dataset:(urn:li:dataPlatform:featurestore,lifeboat.features.customer_value,PROD)",
+        "downstream_urn": "urn:li:mlModel:(urn:li:dataPlatform:mlflow,lifeboat.churn_model,PROD)"
+      }
+    },
+    {
+      "upstream_urn": "urn:li:dataset:(urn:li:dataPlatform:duckdb,lifeboat.analytics.customer_revenue,PROD)",
+      "downstream_urn": "urn:li:dashboard:(looker,lifeboat.executive_revenue)",
+      "evidence": {
+        "source": "datahub_mcp",
+        "tool": "get_lineage",
+        "upstream_urn": "urn:li:dataset:(urn:li:dataPlatform:duckdb,lifeboat.analytics.customer_revenue,PROD)",
+        "downstream_urn": "urn:li:dashboard:(looker,lifeboat.executive_revenue)"
+      }
+    }
+  ]
+}
+
