@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import re
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
@@ -49,6 +50,7 @@ RESET_RECEIPT = "datahub-reset-receipt.json"
 WRITEBACK_RECEIPT = "writeback-receipt.json"
 VERTICAL_SLICE_RECEIPT = "vertical-slice-receipt.json"
 MCP_LINEAGE_RESULT_LIMIT = 100
+RUN_ID_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$")
 
 
 class DataHubIntegrationError(RuntimeError):
@@ -99,6 +101,13 @@ def _now() -> str:
     return datetime.now(UTC).isoformat()
 
 
+def _assert_safe_run_id(run_id: str) -> None:
+    if not RUN_ID_PATTERN.fullmatch(run_id):
+        raise DataHubIntegrationError(
+            "run_id must be 1-80 safe alphanumeric, dot, underscore, or dash characters"
+        )
+
+
 def _canonical_sha256(payload: Any) -> str:
     encoded = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()
     return hashlib.sha256(encoded).hexdigest()
@@ -142,15 +151,27 @@ def _assert_no_secret_material(payload: Any, token: str | None) -> None:
     walk(payload)
 
 
+def sanitized_receipt_bytes(
+    settings: Settings, receipt: Mapping[str, Any]
+) -> bytes:
+    payload = dict(receipt)
+    _assert_no_secret_material(payload, settings.datahub_token)
+    return (json.dumps(payload, indent=2, sort_keys=True) + "\n").encode("utf-8")
+
+
+def _atomic_write(path: Path, payload: bytes) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_suffix(path.suffix + ".tmp")
+    temporary.write_bytes(payload)
+    os.replace(temporary, path)
+
+
 def _persist_receipt(
     settings: Settings, filename: str, receipt: Mapping[str, Any]
 ) -> dict[str, Any]:
     payload = dict(receipt)
-    _assert_no_secret_material(payload, settings.datahub_token)
     path = _receipt_path(settings, filename)
-    path.write_text(
-        json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8"
-    )
+    _atomic_write(path, sanitized_receipt_bytes(settings, payload))
     return {**payload, "receipt_path": str(path)}
 
 
@@ -280,8 +301,7 @@ class DataHubSdkMutationPort:
     def writeback(self, target_urn: str, run_id: str) -> Mapping[str, Any]:
         policy = _scope_policy(self.settings)
         policy.assert_urn(target_urn)
-        if not run_id.strip():
-            raise DataHubIntegrationError("run_id must not be blank")
+        _assert_safe_run_id(run_id)
         self._emit(
             target_urn,
             GlobalTagsClass(
@@ -538,7 +558,10 @@ async def writeback_and_verify(
     target_urn: str = DEFAULT_WRITEBACK_TARGET,
     mutation_port: MutationPort | None = None,
     context_port: ContextPort | None = None,
+    *,
+    persist_receipt: bool = True,
 ) -> dict[str, Any]:
+    _assert_safe_run_id(run_id)
     snapshot, _ = _load_fixture(settings)
     policy = _scope_policy(settings)
     policy.assert_urn(target_urn)
@@ -572,7 +595,10 @@ async def writeback_and_verify(
             "evidence": reread,
         },
     }
-    return _persist_receipt(settings, WRITEBACK_RECEIPT, receipt)
+    if persist_receipt:
+        return _persist_receipt(settings, WRITEBACK_RECEIPT, receipt)
+    sanitized_receipt_bytes(settings, receipt)
+    return receipt
 
 
 async def run_vertical_slice(

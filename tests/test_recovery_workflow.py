@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import json
 from dataclasses import replace
 from pathlib import Path
@@ -10,7 +11,10 @@ import pytest
 from lineage_lifeboat.config import Settings
 from lineage_lifeboat.datahub_vertical_slice import (
     CONTROL_URNS,
+    DEFAULT_WRITEBACK_TARGET,
     WRITEBACK_TAG_URN,
+    DataHubIntegrationError,
+    writeback_and_verify,
 )
 from lineage_lifeboat.domain.models import (
     GraphSnapshot,
@@ -27,6 +31,7 @@ from lineage_lifeboat.estate import (
 from lineage_lifeboat.workflow import (
     ApprovalMismatchError,
     ApprovalRequiredError,
+    ImmutableEvidenceError,
     InvalidRunIdError,
     RecoveryWorkflow,
     execute_with_datahub_writeback,
@@ -233,9 +238,15 @@ def test_verified_datahub_writeback_is_attached_to_final_report(tmp_path: Path) 
 
     assert completed.status == RecoveryRunStatus.COMPLETED
     assert completed.datahub_outcome.status == "verified"
-    assert Path(completed.datahub_outcome.receipt_path).is_file()
+    receipt_path = Path(completed.datahub_outcome.receipt_path)
+    assert receipt_path.is_file()
+    assert receipt_path.parent.name == planned.run_id
+    assert receipt_path.name == "datahub-writeback-receipt.json"
     assert len(completed.datahub_outcome.receipt_sha256) == 64
     assert mutation.writebacks[0][1] == planned.run_id
+    assert not (
+        workflow.state_root / "datahub-receipts" / "writeback-receipt.json"
+    ).exists()
 
 
 def test_live_context_receipt_binds_plan_and_unsafe_inputs_fail_closed(
@@ -268,3 +279,144 @@ def test_live_context_receipt_binds_plan_and_unsafe_inputs_fail_closed(
         workflow.compile_run("../foreign")
     with pytest.raises(DemoEstateError, match="confirm_project"):
         workflow.trigger_outage("another-project")
+
+
+def test_later_run_cannot_change_prior_run_or_vertical_slice_evidence(
+    tmp_path: Path,
+) -> None:
+    workflow = RecoveryWorkflow(_settings(tmp_path, token="test-only-token"))
+    stable_path = (
+        workflow.state_root / "datahub-receipts" / "writeback-receipt.json"
+    )
+    stable_path.parent.mkdir(parents=True)
+    stable_bytes = b'{"authoritative":"milestone-b-vertical-slice"}\n'
+    stable_path.write_bytes(stable_bytes)
+    vertical_path = stable_path.parent / "vertical-slice-receipt.json"
+    vertical_bytes = json.dumps(
+        {"writeback_receipt_path": str(stable_path)}, sort_keys=True
+    ).encode("utf-8")
+    vertical_path.write_bytes(vertical_bytes)
+    mutation = FakeMutationPort()
+
+    first = _prepare(workflow, "immutable-run-a")
+    workflow.approve(
+        first.run_id,
+        plan_id=first.plan.plan_id,
+        approved_by="test-commander",
+    )
+    completed_a = asyncio.run(
+        execute_with_datahub_writeback(
+            workflow,
+            first.run_id,
+            mutation_port=mutation,
+            context_port=FakeContextPort(),
+        )
+    )
+    receipt_a = Path(completed_a.datahub_outcome.receipt_path)
+    bytes_a = receipt_a.read_bytes()
+    hash_a = hashlib.sha256(bytes_a).hexdigest()
+
+    second = _prepare(workflow, "immutable-run-b")
+    workflow.approve(
+        second.run_id,
+        plan_id=second.plan.plan_id,
+        approved_by="test-commander",
+    )
+    completed_b = asyncio.run(
+        execute_with_datahub_writeback(
+            workflow,
+            second.run_id,
+            mutation_port=mutation,
+            context_port=FakeContextPort(),
+        )
+    )
+
+    reloaded_a = workflow.get_run(first.run_id)
+    assert reloaded_a.datahub_outcome.receipt_path == str(receipt_a)
+    assert reloaded_a.datahub_outcome.receipt_sha256 == hash_a
+    assert receipt_a.read_bytes() == bytes_a
+    assert hashlib.sha256(receipt_a.read_bytes()).hexdigest() == hash_a
+    assert Path(completed_b.datahub_outcome.receipt_path) != receipt_a
+    assert stable_path.read_bytes() == stable_bytes
+    assert vertical_path.read_bytes() == vertical_bytes
+    assert mutation.writebacks == [
+        (DEFAULT_WRITEBACK_TARGET, first.run_id),
+        (DEFAULT_WRITEBACK_TARGET, second.run_id),
+    ]
+
+
+def test_unsafe_run_id_and_immutable_receipt_conflict_fail_closed(
+    tmp_path: Path,
+) -> None:
+    settings = _settings(tmp_path, token="test-only-token")
+    mutation = FakeMutationPort()
+    with pytest.raises(DataHubIntegrationError, match="run_id"):
+        asyncio.run(
+            writeback_and_verify(
+                settings,
+                run_id="../escape",
+                mutation_port=mutation,
+                context_port=FakeContextPort(),
+                persist_receipt=False,
+            )
+        )
+    assert mutation.writebacks == []
+
+    workflow = RecoveryWorkflow(settings)
+    planned = _prepare(workflow, "retention-failure")
+    workflow.approve(
+        planned.run_id,
+        plan_id=planned.plan.plan_id,
+        approved_by="test-commander",
+    )
+    immutable_path = (
+        workflow.run_root / planned.run_id / "datahub-writeback-receipt.json"
+    )
+    original = b'{"preexisting":"different"}\n'
+    immutable_path.write_bytes(original)
+    failed = asyncio.run(
+        execute_with_datahub_writeback(
+            workflow,
+            planned.run_id,
+            mutation_port=mutation,
+            context_port=FakeContextPort(),
+        )
+    )
+
+    assert failed.status == RecoveryRunStatus.COMPLETED
+    assert failed.datahub_outcome.status == "failed"
+    assert "ImmutableEvidenceError" in failed.datahub_outcome.detail
+    assert immutable_path.read_bytes() == original
+    with pytest.raises(ImmutableEvidenceError):
+        workflow.persist_datahub_receipt(planned.run_id, {"different": True})
+
+
+def test_no_token_run_does_not_create_or_change_datahub_receipts(
+    tmp_path: Path,
+) -> None:
+    workflow = RecoveryWorkflow(_settings(tmp_path))
+    stable_path = (
+        workflow.state_root / "datahub-receipts" / "writeback-receipt.json"
+    )
+    stable_path.parent.mkdir(parents=True)
+    stable_bytes = b'{"authoritative":"unchanged"}\n'
+    stable_path.write_bytes(stable_bytes)
+    planned = _prepare(workflow, "no-token-run")
+    workflow.approve(
+        planned.run_id,
+        plan_id=planned.plan.plan_id,
+        approved_by="test-commander",
+    )
+
+    completed = asyncio.run(
+        execute_with_datahub_writeback(workflow, planned.run_id)
+    )
+
+    assert completed.datahub_outcome.status == "not_configured"
+    assert completed.datahub_outcome.receipt_path is None
+    assert stable_path.read_bytes() == stable_bytes
+    assert not (
+        workflow.run_root
+        / planned.run_id
+        / "datahub-writeback-receipt.json"
+    ).exists()

@@ -129,3 +129,23 @@ The MVP UI is packaged HTML, CSS, and browser JavaScript served by FastAPI. It
 requires no Node build chain and keeps the clean-checkout demo to one Python
 installation and one service command. The console exposes the exact deterministic
 API transitions; it does not introduce a second planning or execution authority.
+
+## ADR-011: Retain DataHub writeback evidence per recovery run
+
+**Status:** Accepted
+
+**Date:** 2026-07-25
+
+The stable `APP_STATE_DIR/datahub-receipts/writeback-receipt.json` is a component
+of the authoritative Milestone B vertical-slice readiness record. Judge recovery
+runs must not overwrite it. After a recovery writeback and immediate MCP reread,
+the workflow therefore requests the already scrubbed receipt payload without
+stable-path persistence and atomically writes the exact bytes beneath the
+validated run directory as `datahub-writeback-receipt.json`.
+
+The run ledger stores that immutable path and SHA-256. A different run ID maps to
+a different validated directory. Reusing an identical existing receipt is safe;
+different existing bytes, an escaped directory, a retention I/O failure, or an
+unsafe run ID fails closed without replacement. No-token runs create no receipt.
+The vertical-slice command keeps its established stable component paths and
+readiness contract unchanged.

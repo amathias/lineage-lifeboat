@@ -93,11 +93,12 @@ The project uses open-source DataHub plus the DataHub MCP Server:
 - immediate MCP reread proving the marker tag;
 - namespace-scoped reset with fail-closed readiness evidence.
 
-The deployed Milestone B candidate
-`f00c48362bcb6d09737c2809f89dea7675682075` passed live reset, restore,
-writeback, isolation, and cross-demo concurrency gates. Those coordinator-owned
-receipt hashes remain recorded in `COORDINATOR_HANDOFF.md`; the executable local
-workflow does not alter or replace them.
+The deployed Milestone C candidate
+`c92488300023fc65660499b3406fd2e4db76fcbc` passed the coordinator's live
+recovery gate: six of six steps verified, supported DataHub writeback/reread
+verified, and readiness remained HTTP 200. The earlier Milestone B reset,
+restore, isolation, concurrency, and stable vertical-slice receipt hashes remain
+recorded in `COORDINATOR_HANDOFF.md` and authoritative.
 
 For a fresh live integration run, provide the token out of band:
 
@@ -126,6 +127,15 @@ The CLI exposes each transition independently:
 
 Running `demo-execute` again resumes a failed run. Previously verified steps are
 loaded from `APP_STATE_DIR/recovery-runs/<run-id>/run.json` and skipped.
+
+After a verified DataHub writeback/reread, the exact scrubbed receipt is
+atomically retained at
+`APP_STATE_DIR/recovery-runs/<run-id>/datahub-writeback-receipt.json`. Its bytes
+and SHA-256 are bound to that `RecoveryRun`; a later run uses a different
+validated directory and cannot replace prior evidence. A conflicting existing
+file fails closed. Recovery execution never overwrites the stable
+`APP_STATE_DIR/datahub-receipts/writeback-receipt.json` component referenced by
+the authoritative Milestone B vertical-slice readiness record.
 
 ## Evidence and examples
 
@@ -157,8 +167,9 @@ Verify the full clean local story stays under three minutes:
 
 The suite covers graph ordering, cycles, missing adapters, namespace isolation,
 DataHub read/write contracts, reset safety, approval gates, exact plan binding,
-idempotency, injected adapter failure and resume, validation blocking, report
-evidence, and the end-to-end console API.
+idempotency, injected adapter failure and resume, validation blocking, immutable
+per-run receipt retention across multiple runs, path traversal and retention
+failure, no-token behavior, report evidence, and the end-to-end console API.
 
 ## API summary
 

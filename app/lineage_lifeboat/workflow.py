@@ -14,6 +14,7 @@ from lineage_lifeboat.datahub_vertical_slice import (
     ContextPort,
     DataHubIntegrationError,
     MutationPort,
+    sanitized_receipt_bytes,
     writeback_and_verify,
 )
 from lineage_lifeboat.demo_state import _assert_safe_state_dir, _load_fixture
@@ -64,6 +65,10 @@ class InvalidRunIdError(RecoveryWorkflowError):
 
 
 class StepValidationFailure(RecoveryWorkflowError):
+    pass
+
+
+class ImmutableEvidenceError(RecoveryWorkflowError):
     pass
 
 
@@ -305,6 +310,34 @@ class RecoveryWorkflow:
         self._persist(updated)
         return self._export_reports(updated)
 
+    def persist_datahub_receipt(
+        self,
+        run_id: str,
+        receipt: Mapping[str, Any],
+    ) -> Path:
+        self.get_run(run_id)
+        run_root = self.run_root.resolve()
+        run_dir = self._run_dir(run_id).resolve()
+        if run_dir.parent != run_root:
+            raise ImmutableEvidenceError(
+                "recovery receipt directory escaped the project run root"
+            )
+        path = run_dir / "datahub-writeback-receipt.json"
+        payload = sanitized_receipt_bytes(self.settings, receipt)
+        try:
+            if path.exists():
+                if not path.is_file() or path.read_bytes() != payload:
+                    raise ImmutableEvidenceError(
+                        "immutable DataHub receipt already exists with different bytes"
+                    )
+                return path
+            _atomic_write(path, payload)
+        except OSError as error:
+            raise ImmutableEvidenceError(
+                "immutable DataHub receipt could not be retained"
+            ) from error
+        return path
+
     def export_examples(self, run_id: str, destination: Path) -> tuple[Path, Path, Path]:
         run = self.get_run(run_id)
         destination.mkdir(parents=True, exist_ok=True)
@@ -540,8 +573,10 @@ async def execute_with_datahub_writeback(
             run_id=run_id,
             mutation_port=mutation_port,
             context_port=context_port,
+            persist_receipt=False,
         )
-    except DataHubIntegrationError as error:
+        receipt_path = workflow.persist_datahub_receipt(run_id, receipt)
+    except (DataHubIntegrationError, ImmutableEvidenceError) as error:
         return workflow.record_datahub_outcome(
             run_id,
             DataHubOutcome(
@@ -549,7 +584,6 @@ async def execute_with_datahub_writeback(
                 detail=f"writeback failed closed: {type(error).__name__}",
             ),
         )
-    receipt_path = Path(str(receipt["receipt_path"]))
     return workflow.record_datahub_outcome(
         run_id,
         DataHubOutcome(
