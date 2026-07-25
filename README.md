@@ -41,7 +41,7 @@ A simulated warehouse-region outage disables six connected assets. Lineage Lifeb
 
 ## Name rationale
 
-“Lineage Lifeboat” is memorable, directly evokes recovery, and avoids sounding like an official DataHub product. The subtitle supplies the searchable, judge-friendly explanation.
+â€œLineage Lifeboatâ€ is memorable, directly evokes recovery, and avoids sounding like an official DataHub product. The subtitle supplies the searchable, judge-friendly explanation.
 
 ## Workspace map
 
