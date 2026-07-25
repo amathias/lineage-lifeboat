@@ -34,6 +34,19 @@ Before modifying code, read these files completely:
 - Add unit tests for graph ordering, cycle handling, policy gates, idempotency, and validation failures.
 - Maintain `docs/DECISIONS.md` as architectural decisions are made.
 
+## GitHub publishing
+
+- Canonical repository: `https://github.com/amathias/lineage-lifeboat`.
+- Configured origin: `git@github-datahub-lineage-lifeboat:amathias/lineage-lifeboat.git`.
+- While this chat is the project's primary writer, it may commit and intermittently push verified
+  milestone changes to `origin/main`.
+- Inspect the complete diff, run relevant checks, stage only intended paths, and keep
+  `COORDINATOR_HANDOFF.md` current before pushing.
+- Never change the remote, force push, delete remote refs, use another project's SSH alias, or add
+  secrets, private keys, `.env` files, runtime receipts, or private evidence to Git.
+- If `origin` is absent or differs from the exact value above, stop and escalate to the portfolio
+  coordinator.
+
 ## Definition of done
 
 The project is not done until a new reviewer can follow the README, start DataHub and the app, ingest the demo graph, trigger the outage, generate and approve a plan, execute it, see validation results, confirm DataHub writeback, run automated tests, and reproduce the under-three-minute demo.
