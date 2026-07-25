@@ -4,6 +4,23 @@
 
 This project chat owns Lineage Lifeboat product code, tests, demo evidence, and submission behavior. The portfolio coordinator owns shared DataHub, AWS, promotion, secrets, tunnels, and live evidence capture. This milestone did not deploy, access EC2, or modify another workspace.
 
+## Milestone C promotion and immutable-evidence successor
+
+| Field | Value |
+|---|---|
+| Current deployed candidate | `c92488300023fc65660499b3406fd2e4db76fcbc` |
+| Coordinator live run | `coordinator-milestone-c-live-001` |
+| Live execution | `6/6 recovery steps verified` |
+| Live DataHub outcome | `verified` |
+| Live readiness after run | `HTTP 200` |
+| Live writeback receipt SHA-256 | `5d1141e5022d5d3de15eb17e0104a5482b0f70eb9a1325b2b03b6bbb600432be` |
+| Exact successor product candidate | `a304df864a9eedff91862d0d4642484f0ab89984` |
+| Successor subject | `fix: retain immutable per-run writeback evidence` |
+| Successor deployment status | `locally verified; not deployed here` |
+| Local verification | `51 passed, 85% coverage; Ruff/compile/judge/archive gates passed` |
+
+The coordinator independently promoted and verified exact candidate `c924883...`; this chat did not access AWS or deploy it. The bounded successor keeps the established Milestone B stable vertical-slice component receipt authoritative. Recovery execution no longer writes that stable path. It atomically retains the exact scrubbed writeback/reread payload at `APP_STATE_DIR/recovery-runs/<validated-run-id>/datahub-writeback-receipt.json`, stores that path and SHA-256 in the run ledger, and refuses traversal, conflicting bytes, or retention failure without overwrite.
+
 ## Milestone B result
 
 | Field | Value |
@@ -12,7 +29,7 @@ This project chat owns Lineage Lifeboat product code, tests, demo evidence, and 
 | Exact deployment candidate | `f00c48362bcb6d09737c2809f89dea7675682075` |
 | Candidate subject | `fix: make DataHub reset fail closed` |
 | Superseded live candidate | `12ca7b9a10222a55cd79f24c72fd800ebe0b0d47` |
-| Currently deployed candidate | `f00c48362bcb6d09737c2809f89dea7675682075` |
+| Milestone B deployed candidate at closeout | `f00c48362bcb6d09737c2809f89dea7675682075` |
 | Local test result | `42 passed` |
 | Local coverage | `82% total` |
 | Git-archive packaging smoke | `passed: strict UTF-8 README decode, wheel build, isolated install, isolated import` |
@@ -190,6 +207,14 @@ Receipts contain the exact MCP tool results and SHA-256 evidence hashes. Before 
 
 ### Coordinator-owned live evidence hashes
 
+Milestone C recovery `coordinator-milestone-c-live-001` on deployed `c924883...`:
+
+| Artifact | SHA-256 |
+|---|---|
+| Verified recovery writeback receipt | `5d1141e5022d5d3de15eb17e0104a5482b0f70eb9a1325b2b03b6bbb600432be` |
+
+The run completed 6/6 recovery steps, recorded `datahub_outcome.status=verified`, and left readiness at HTTP 200.
+
 Corrected reset:
 
 | Artifact | SHA-256 |
@@ -276,7 +301,7 @@ Milestone B remains closed for exact deployed candidate `f00c48362bcb6d09737c280
 - retry `coordinator-milestone-b-restore-003` restored all eight datasets, verified every required MCP lineage edge, completed supported `globalTags` writeback/reread, and returned readiness to HTTP 200;
 - `coordinator-concurrency-live-002` later succeeded alongside Forget-Me-Graph, and the read-only post-evidence snapshot reproduced the final aggregate receipt hash exactly.
 
-The exact locally verified Milestone C product candidate is `c92488300023fc65660499b3406fd2e4db76fcbc`. It has not been deployed. The current live application remains the Milestone B candidate above, and all coordinator-owned live receipts and hashes remain authoritative.
+Exact Milestone C candidate `c92488300023fc65660499b3406fd2e4db76fcbc` is now deployed and independently passed the public live gate recorded above. All earlier Milestone B receipts and hashes remain authoritative. The exact locally verified immutable-evidence successor is `a304df864a9eedff91862d0d4642484f0ab89984`; it has not been deployed.
 
 ### Judge workflow delivered
 
@@ -316,7 +341,7 @@ python -m lineage_lifeboat.cli demo-approve --run-id judge-demo-001 --plan-id <p
 python -m lineage_lifeboat.cli demo-execute --run-id judge-demo-001
 ```
 
-Verification commands and exact results for `c92488300023fc65660499b3406fd2e4db76fcbc`:
+Verification commands and exact results for successor `a304df864a9eedff91862d0d4642484f0ab89984`:
 
 ```powershell
 ruff check app tests scripts
@@ -327,10 +352,11 @@ python scripts/verify_judge_demo.py
 
 - Ruff: passed.
 - Compileall: passed.
-- Pytest: 48 passed in 38.96 seconds; 84% aggregate coverage, including 89% workflow and 92% estate/adapters.
-- Clean working-tree judge verifier: 6/6 steps verified in 2.02 seconds, below the three-minute ceiling.
-- Deterministic regeneration: all three committed example hashes remained byte-for-byte unchanged.
-- Exact `git archive c924883...` packaging smoke: wheel built and installed, packaged `static/index.html` verified, and the archived-source judge workflow verified 6/6 steps in 4.51 seconds.
+- Pytest: 51 passed in 51.41 seconds; 85% aggregate coverage, including 90% workflow, 94% estate/adapters, and 83% DataHub integration coverage.
+- Judge verifier: 6/6 steps verified in 5.12 seconds, below the three-minute ceiling.
+- The multi-run regression reloads run A after run B and verifies run A's immutable receipt bytes/path/SHA-256 while the stable vertical-slice record and component bytes remain unchanged.
+- Traversal, conflicting immutable bytes, retention failure, and no-token paths all fail closed as specified.
+- Exact `git archive a304df8...` packaging smoke: wheel built, installed into an isolated target, and imported from that target successfully.
 - Served-page probe: `/` and `/api/demo/state` returned HTTP 200; the ASGI browser-journey regression completes initialization through verified recovery. Screenshot-level in-app browser QA could not run because the host browser runtime twice exited on `windows sandbox helper_unknown_error`; this is a local Codex tooling limitation, not an application failure.
 
 Deterministic committed example hashes:
@@ -349,14 +375,15 @@ Runtime evidence remains ignored by Git and is written only under the project st
 <APP_STATE_DIR>/recovery-runs/<run-id>/run.json
 <APP_STATE_DIR>/recovery-runs/<run-id>/recovery-report.json
 <APP_STATE_DIR>/recovery-runs/<run-id>/recovery-report.md
-<APP_STATE_DIR>/datahub-receipts/writeback-receipt.json
+<APP_STATE_DIR>/recovery-runs/<run-id>/datahub-writeback-receipt.json
+<APP_STATE_DIR>/datahub-receipts/writeback-receipt.json  # vertical-slice component only
 ```
 
-There is no remaining local implementation blocker for the judge workflow. Remaining portfolio work is coordinator-owned promotion/rehearsal of the combined live candidate, capture of live UI/writeback evidence, and final submission recording. This milestone did not deploy, access AWS/EC2, open a tunnel, or handle a token.
+There is no remaining local implementation blocker for immutable evidence retention. Remaining portfolio work is coordinator-owned promotion and live two-run evidence for successor `a304df8...`, followed by final submission recording. This milestone did not deploy, access AWS/EC2, open a tunnel, or handle a token.
 
 ## Promotion and rollback
 
-- Current deployed application code/image: exact Milestone B candidate `f00c48362bcb6d09737c2809f89dea7675682075`.
-- Proposed Milestone C product candidate: `c92488300023fc65660499b3406fd2e4db76fcbc`; locally verified only, not deployed.
-- Application rollback after a future Milestone C promotion: return to `f00c48362bcb6d09737c2809f89dea7675682075`.
-- DataHub fixture rollback remains the confirmed `reset-datahub` command from candidate `f00c48362bcb6d09737c2809f89dea7675682075`; never use the reset implementation from `12ca7b9a...`, and never use a global DataHub reset.
+- Current deployed application code/image: exact Milestone C candidate `c92488300023fc65660499b3406fd2e4db76fcbc`.
+- Proposed immutable-evidence successor: `a304df864a9eedff91862d0d4642484f0ab89984`; locally verified only, not deployed.
+- Application rollback after a future successor promotion: return to `c92488300023fc65660499b3406fd2e4db76fcbc`.
+- DataHub fixture rollback remains the confirmed `reset-datahub` command inherited from candidate `f00c48362bcb6d09737c2809f89dea7675682075`; never use the reset implementation from `12ca7b9a...`, and never use a global DataHub reset.
