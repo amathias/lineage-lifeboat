@@ -93,12 +93,14 @@ The project uses open-source DataHub plus the DataHub MCP Server:
 - immediate MCP reread proving the marker tag;
 - namespace-scoped reset with fail-closed readiness evidence.
 
-The deployed Milestone C candidate
-`c92488300023fc65660499b3406fd2e4db76fcbc` passed the coordinator's live
-recovery gate: six of six steps verified, supported DataHub writeback/reread
-verified, and readiness remained HTTP 200. The earlier Milestone B reset,
-restore, isolation, concurrency, and stable vertical-slice receipt hashes remain
-recorded in `COORDINATOR_HANDOFF.md` and authoritative.
+The deployed immutable-evidence candidate
+`a304df864a9eedff91862d0d4642484f0ab89984` passed the coordinator's two-run
+public live gate. Both approved recoveries completed six of six steps with
+verified live DataHub MCP context and verified writeback/reread. Run A's receipt
+and ledger hashes remained unchanged after run B, while the stable writeback
+component and vertical-slice aggregate also remained unchanged. Exact paths,
+hashes, endpoint checks, archive details, and rollback candidate are recorded in
+`COORDINATOR_HANDOFF.md`.
 
 For a fresh live integration run, provide the token out of band:
 

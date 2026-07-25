@@ -132,7 +132,7 @@ API transitions; it does not introduce a second planning or execution authority.
 
 ## ADR-011: Retain DataHub writeback evidence per recovery run
 
-**Status:** Accepted
+**Status:** Accepted; live two-run retention gate passed
 
 **Date:** 2026-07-25
 
@@ -149,3 +149,9 @@ different existing bytes, an escaped directory, a retention I/O failure, or an
 unsafe run ID fails closed without replacement. No-token runs create no receipt.
 The vertical-slice command keeps its established stable component paths and
 readiness contract unchanged.
+
+Coordinator live closeout on exact deployed candidate `a304df864a9eedff91862d0d4642484f0ab89984`
+completed two approved 6/6 recovery runs. Run A's receipt and ledger hashes were
+unchanged after run B, and the stable writeback component plus vertical-slice
+aggregate hashes were also unchanged. This independently verified the decision's
+per-run immutability and readiness-isolation contract.
