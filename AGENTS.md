@@ -47,6 +47,18 @@ Before modifying code, read these files completely:
 - If `origin` is absent or differs from the exact value above, stop and escalate to the portfolio
   coordinator.
 
+### Commit cadence
+
+- Commit and push at coherent, verified milestones or independently reviewable sub-milestones, not
+  after every edit or test run.
+- Keep implementation, tests, documentation, and handoff updates for one logical change together;
+  separate unrelated work.
+- Use meaningful imperative Conventional Commit subjects such as `feat:`, `fix:`, `test:`, or
+  `docs:`; never use `update`, `changes`, `fix stuff`, `WIP`, or `checkpoint`.
+- For non-trivial changes, add a commit body covering why, key safety or compatibility decisions,
+  and checks performed.
+- Do not create an unverified work-in-progress commit solely because work pauses or a chat ends.
+
 ## Definition of done
 
 The project is not done until a new reviewer can follow the README, start DataHub and the app, ingest the demo graph, trigger the outage, generate and approve a plan, execute it, see validation results, confirm DataHub writeback, run automated tests, and reproduce the under-three-minute demo.
