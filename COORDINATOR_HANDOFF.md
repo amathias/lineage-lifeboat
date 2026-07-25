@@ -9,15 +9,18 @@ This project chat owns Lineage Lifeboat product code, tests, demo evidence, and 
 | Field | Value |
 |---|---|
 | Status | `implementation complete; coordinator live promotion/evidence pending` |
-| Exact deployment candidate | `d3dbacf382589c1add8b8a8cbdb84ad503e5a1f0` |
-| Candidate subject | `feat: add verified DataHub vertical slice` |
-| Candidate parent / currently deployed baseline | `d6a73a935bb0259b9ace6b1eb1d79b115add3c91` |
+| Exact deployment candidate | `bf9435d5b2a9ccecfff68c8995302e325031b8df` |
+| Candidate subject | `fix: validate packaging from clean archive` |
+| Superseded packaging-failing candidate | `d3dbacf382589c1add8b8a8cbdb84ad503e5a1f0` |
+| Currently deployed baseline | `d6a73a935bb0259b9ace6b1eb1d79b115add3c91` |
 | Local test result | `33 passed` |
 | Local coverage | `80% total` |
+| Git-archive packaging smoke | `passed: strict UTF-8 README decode, wheel build, isolated install, isolated import` |
 | Live deployment performed here | `no` |
 | Live DataHub receipt claimed here | `no` |
 
 The candidate implements the smallest guarded real-DataHub slice: supported SDK upserts, MCP entity and direct-edge lineage reads, one tag writeback, immediate MCP reread, scrubbed receipts, deterministic soft reset, and evidence-gated readiness.
+It also converts `README.md` from Windows-1252 smart-quote bytes to valid BOM-free UTF-8 without changing its decoded text.
 
 ## Exact commands
 
@@ -44,6 +47,14 @@ Pinned integration packages are `acryl-datahub==1.6.0.15` and `mcp==1.28.1`.
 ```
 
 Verified locally on Python 3.13.2: 33 passed, 80% total coverage.
+
+### Clean Git-archive packaging smoke
+
+```powershell
+.\.venv\Scripts\python.exe scripts\archive_package_smoke.py --revision bf9435d5b2a9ccecfff68c8995302e325031b8df
+```
+
+Verified against the exact immutable candidate: strict UTF-8 README decoding succeeded, setuptools built `lineage_lifeboat-0.1.0-py3-none-any.whl`, pip installed it into a temporary isolated target, and Python imported `lineage_lifeboat` from that target. The script uses `git archive`, not working-tree files.
 
 ### Run service
 
@@ -219,16 +230,17 @@ DATAHUB_MCP_URL=http://127.0.0.1:8000/mcp
 
 There is no known implementation or test blocker. Coordinator-owned live work remains:
 
-1. promote exact candidate `d3dbacf382589c1add8b8a8cbdb84ad503e5a1f0`;
+1. promote exact candidate `bf9435d5b2a9ccecfff68c8995302e325031b8df`;
 2. confirm readiness is 503 before live evidence;
 3. run the guarded vertical-slice command with the already injected service-account token;
 4. capture seed, MCP entity/lineage read, writeback, immediate reread, and readiness 200 evidence;
 5. run the confirmed soft reset, verify isolation, rerun the slice to restore, and retain both receipts.
 
 The local workstation still has no `DATAHUB_TOKEN`, no AWS Session Manager plugin, and no listeners on ports 8080/8000. Per coordinator direction, this chat did not install the plugin, request a token, access EC2, or deploy. Those local conditions do not invalidate the clean candidate; they explain why no live receipt is claimed here.
+The coordinator's attempted promotion of `d3dbacf...` stopped during setuptools metadata generation before replacing the running baseline, so no live DataHub mutation or receipt was attempted for that candidate.
 
 ## Promotion and rollback
 
-- Promote: exact candidate `d3dbacf382589c1add8b8a8cbdb84ad503e5a1f0`.
+- Promote: exact candidate `bf9435d5b2a9ccecfff68c8995302e325031b8df`.
 - Roll back application code/image: previously deployed baseline `d6a73a935bb0259b9ace6b1eb1d79b115add3c91`.
 - DataHub fixture rollback: run the candidate's confirmed `reset-datahub` command before application rollback if the coordinator wants the project fixture soft-deleted. Do not use a global DataHub reset.
