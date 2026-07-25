@@ -1,104 +1,234 @@
-﻿# Coordinator Handoff: Lineage Lifeboat
+# Coordinator Handoff: Lineage Lifeboat
 
-## Relationship to the portfolio coordinator
+## Scope and ownership
 
-This project chat owns Lineage Lifeboat's product, code, tests, demo, evidence, and submission.
-The portfolio coordinator at `../COORDINATOR_PLAN.md` owns the shared DataHub and AWS deployment
-contracts.
+This project chat owns Lineage Lifeboat product code, tests, demo evidence, and submission behavior. The portfolio coordinator owns shared DataHub, AWS, promotion, secrets, tunnels, and live evidence capture. This milestone did not deploy, access EC2, or modify another workspace.
 
-Before changing a port, public route, shared environment variable, DataHub namespace, deployment
-topology, or global reset behavior, submit the proposed change to the coordinator. Do not edit the
-live EC2 host from this project chat.
+## Milestone B result
 
-## Fixed project allocation
+| Field | Value |
+|---|---|
+| Status | `implementation complete; coordinator live promotion/evidence pending` |
+| Exact deployment candidate | `d3dbacf382589c1add8b8a8cbdb84ad503e5a1f0` |
+| Candidate subject | `feat: add verified DataHub vertical slice` |
+| Candidate parent / currently deployed baseline | `d6a73a935bb0259b9ace6b1eb1d79b115add3c91` |
+| Local test result | `33 passed` |
+| Local coverage | `80% total` |
+| Live deployment performed here | `no` |
+| Live DataHub receipt claimed here | `no` |
+
+The candidate implements the smallest guarded real-DataHub slice: supported SDK upserts, MCP entity and direct-edge lineage reads, one tag writeback, immediate MCP reread, scrubbed receipts, deterministic soft reset, and evidence-gated readiness.
+
+## Exact commands
+
+### Build
+
+Windows workspace:
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -e ".[dev]"
+```
+
+Deployment/container equivalent:
+
+```bash
+python -m pip install -e ".[dev]"
+```
+
+Pinned integration packages are `acryl-datahub==1.6.0.15` and `mcp==1.28.1`.
+
+### Full tests
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest --cov=lineage_lifeboat --cov-report=term-missing
+```
+
+Verified locally on Python 3.13.2: 33 passed, 80% total coverage.
+
+### Run service
+
+```powershell
+.\.venv\Scripts\python.exe -m lineage_lifeboat
+```
+
+Container equivalent:
+
+```bash
+python -m lineage_lifeboat
+```
+
+Internal port remains `8101`.
+
+### Preferred live seed/read/write/reread command
+
+Run after candidate promotion with the coordinator-injected service-account token and live internal GMS/MCP URLs:
+
+```bash
+python -m lineage_lifeboat.cli datahub-vertical-slice --run-id coordinator-milestone-b-live-001
+```
+
+The command performs, in order:
+
+1. guarded fixture/control upserts and deterministic lineage emission through DataHub `MetadataChangeProposal` APIs;
+2. batch `get_entities` and five direct downstream `get_lineage` reads through the DataHub MCP Server;
+3. a supported `globalTags` writeback to the canonical revenue entity;
+4. an immediate MCP `get_entities` reread that must contain the marker tag;
+5. durable scrubbed receipts under `APP_STATE_DIR/datahub-receipts`.
+
+Separate diagnostic commands are also available:
+
+```bash
+python -m lineage_lifeboat.cli seed-datahub
+python -m lineage_lifeboat.cli read-datahub
+python -m lineage_lifeboat.cli writeback-datahub --run-id coordinator-milestone-b-live-001
+```
+
+All GMS mutations fail before network access when `DATAHUB_TOKEN` is absent. No command prints or persists the token.
+
+### Reset and restore
+
+Reset is an explicit soft delete of only the eight canonical fixture URNs and three exact control URNs:
+
+```bash
+python -m lineage_lifeboat.cli reset-datahub --confirm-project lineage-lifeboat
+```
+
+Restore and capture a new read/write/reread receipt by rerunning:
+
+```bash
+python -m lineage_lifeboat.cli datahub-vertical-slice --run-id coordinator-milestone-b-restore-001
+```
+
+A missing or incorrect confirmation fails closed. Foreign URNs and namespaced-but-nonfixture writeback targets are rejected.
+
+## Canonical fixture and namespace
+
+Fixed allocation:
 
 | Setting | Value |
 |---|---|
 | Project slug | `lineage-lifeboat` |
-| Internal port | `8101` |
 | DataHub domain | `Demo / Lineage Lifeboat` |
-| Required DataHub tag | `project-lineage-lifeboat` |
-| Entity prefix | `lifeboat.` |
-| Fixture root | `demo/fixtures/lineage-lifeboat` |
-| State root | `/var/lib/datahub-hackathon/lineage-lifeboat` |
+| Required project tag | `project-lineage-lifeboat` |
+| Entity name prefix | `lifeboat.` |
+| Fixture path | `demo/fixtures/lineage-lifeboat/graph_snapshot.json` |
+| Persistent state | `/var/lib/datahub-hackathon/lineage-lifeboat` |
 
-## Project-chat obligations
+The eight canonical asset URNs are:
 
-- Build only Lineage Lifeboat business behavior.
-- Keep seed, outage, recovery, verification, and reset operations inside this allocation.
-- Fail closed if an execution or reset target falls outside the `lifeboat.` namespace.
-- Implement `GET /api/health` and `GET /api/readiness`.
-- Keep the project independently runnable without the other four submissions.
-- Update the milestone handoff below whenever deployment-facing behavior changes.
+```text
+urn:li:dataset:(urn:li:dataPlatform:duckdb,lifeboat.raw.orders,PROD)
+urn:li:dataset:(urn:li:dataPlatform:duckdb,lifeboat.raw.customers,PROD)
+urn:li:dataset:(urn:li:dataPlatform:duckdb,lifeboat.analytics.stg_orders,PROD)
+urn:li:dataset:(urn:li:dataPlatform:duckdb,lifeboat.analytics.customer_revenue,PROD)
+urn:li:dataset:(urn:li:dataPlatform:featurestore,lifeboat.features.customer_value,PROD)
+urn:li:dataset:(urn:li:dataPlatform:mlflow,lifeboat.models.churn_model,PROD)
+urn:li:dataset:(urn:li:dataPlatform:looker,lifeboat.dashboards.executive_revenue,PROD)
+urn:li:dataset:(urn:li:dataPlatform:duckdb,lifeboat.inventory.forecast,PROD)
+```
 
-## Milestone handoff
+The ML model and dashboard remain semantically typed through `lifeboat.artifact_type` custom properties but are cataloged as platform-specific datasets so every edge uses DataHub's documented Dataset-to-Dataset lineage contract.
 
-| Field | Current value |
+Exact project controls:
+
+```text
+urn:li:domain:lifeboat
+urn:li:tag:project-lineage-lifeboat
+urn:li:tag:lifeboat-recovery-verified
+```
+
+Seed emits 48 aspect proposals: status, dataset properties/custom recovery context, required tag, domain, ownership, five grouped upstream-lineage aspects, and the three control definitions. Six deterministic edges are represented.
+
+## Read, writeback, and receipt details
+
+MCP read contract:
+
+- `get_entities` receives all eight fixture URNs in one batch when the advertised schema supports `urns`.
+- `get_lineage` is called at one hop with `upstream=false` for each of the five fixture assets that has downstream edges.
+- Evidence validation requires every requested entity and every exact upstream/downstream fixture edge to appear in the corresponding MCP results.
+
+Writeback contract:
+
+| Field | Value |
 |---|---|
-| Status | `in progress` |
-| Milestone | Coordinator contract, namespace isolation, and service probes |
-| Verified commit/artifact | Pending local baseline commit; coordinator records exact hash before promotion |
-| Build command | `python -m pip install -e ".[dev]"` |
-| Test command | `python -m pytest` |
-| Seed command | `python -m lineage_lifeboat.cli seed-local` (local fixture only; does not mutate DataHub) |
-| Reset command | `python -m lineage_lifeboat.cli reset-local` (removes only two allowlisted local fixture files) |
-| Run command | `python -m lineage_lifeboat` |
-| Health endpoint | `GET /api/health` verified HTTP 200 on port 8101 |
-| Readiness endpoint | `GET /api/readiness` implemented; HTTP 503 until state is seeded and DataHub GMS is reachable |
-| Persistent volumes | Deployment: `/var/lib/datahub-hackathon/lineage-lifeboat`; local default: `.data/lineage-lifeboat` |
-| Long-running workers | None currently |
-| DataHub read | Not yet verified |
-| DataHub writeback | Not yet verified |
-| Blockers | Shared DataHub deployment and live read/write receipts; use coordinator SSM tunnel when available |
-| Evidence produced | 23 passing tests at 87% total coverage; deterministic graph fingerprint and seed receipt; process-level health/readiness smoke result |
+| Supported write API | DataHub RestEmitter `MetadataChangeProposal` |
+| Aspect | `globalTags` UPSERT |
+| Target | `urn:li:dataset:(urn:li:dataPlatform:duckdb,lifeboat.analytics.customer_revenue,PROD)` |
+| Preserved isolation tag | `urn:li:tag:project-lineage-lifeboat` |
+| Receipt marker | `urn:li:tag:lifeboat-recovery-verified` |
+| Verification | immediate DataHub MCP `get_entities` reread |
 
-## Required environment variables
+Deployment receipt paths:
 
-No secret values belong in this file. `DATAHUB_TOKEN` is supplied only by the deployment secret
-store or local environment.
+```text
+/var/lib/datahub-hackathon/lineage-lifeboat/datahub-receipts/datahub-seed-receipt.json
+/var/lib/datahub-hackathon/lineage-lifeboat/datahub-receipts/context-read-receipt.json
+/var/lib/datahub-hackathon/lineage-lifeboat/datahub-receipts/writeback-receipt.json
+/var/lib/datahub-hackathon/lineage-lifeboat/datahub-receipts/vertical-slice-receipt.json
+/var/lib/datahub-hackathon/lineage-lifeboat/datahub-receipts/datahub-reset-receipt.json
+```
+
+Receipts contain the exact MCP tool results and SHA-256 evidence hashes. Before persistence, credential key names and the configured token value are rejected. Generated receipts remain runtime evidence and are ignored by Git.
+
+## Health and truthful readiness
+
+- `GET /api/health` is liveness only and never claims DataHub readiness.
+- Candidate `GET /api/readiness` requires all of: fixed allocation, valid namespaced fixture, readable/writable state directory, GMS health, configured `DATAHUB_TOKEN`, and a vertical-slice receipt bound to the current fixture fingerprint.
+- The aggregate receipt must reference the three exact seed/context/writeback files inside the project receipt directory; missing, relocated, or stale evidence fails closed.
+- Expected post-promotion behavior is HTTP 503 until the coordinator runs the live vertical-slice command successfully. HTTP 200 before that would be a defect.
+- The public baseline at `d6a73a9...` previously returned readiness 200 based on GMS health alone; this candidate intentionally closes that gap.
+
+## Environment contract
+
+No values for secrets belong in Git or this handoff.
 
 ```text
 PROJECT_SLUG=lineage-lifeboat
-APP_ENV=<development-or-deployment-environment>
+APP_ENV=<deployment-environment>
 APP_HOST=<bind-address>
 APP_PORT=8101
-APP_PUBLIC_URL=<coordinator-assigned-public-url>
+APP_PUBLIC_URL=https://lifeboat.datahub-hackathon.aaronmathias.com
 APP_STATE_DIR=/var/lib/datahub-hackathon/lineage-lifeboat
-DATAHUB_GMS_URL=<internal-GMS-url>
-DATAHUB_MCP_URL=<internal-MCP-url>
-DATAHUB_TOKEN=<secret-injected-at-runtime>
+DATAHUB_GMS_URL=<coordinator live internal GMS URL>
+DATAHUB_MCP_URL=<coordinator live internal MCP URL ending in /mcp>
+DATAHUB_TOKEN=<AWS SecureString injected at runtime>
 DATAHUB_DOMAIN=Demo / Lineage Lifeboat
 DATAHUB_PROJECT_TAG=project-lineage-lifeboat
 DATAHUB_URN_PREFIX=lifeboat.
 DEMO_FIXTURE_ROOT=demo/fixtures/lineage-lifeboat
 ```
 
-## Current probe behavior
+Local tunnel defaults remain canonical:
 
-- `health` is a liveness check and does not contact DataHub.
-- `readiness` validates the coordinator allocation, parses and namespace-checks the fixture, checks
-  local state-directory access, and performs a non-mutating DataHub GMS health request.
-- After `seed-local`, every readiness check except DataHub connectivity passes in the current local
-  environment.
-- The local seed receipt explicitly records `datahub_seeded: false`; it is not evidence of the
-  required live DataHub ingestion.
+```text
+DATAHUB_GMS_URL=http://127.0.0.1:8080
+DATAHUB_MCP_URL=http://127.0.0.1:8000/mcp
+```
 
-## Resource and deployment notes
+## Resource and operations notes
 
-- CPU, memory, startup time, and final job duration have not yet been measured.
-- The app currently has no migrations and no long-running workers.
-- Rollback is not yet assigned because there is no verified deployment artifact.
-- Demo concurrency behavior is not yet tested.
+- Local Windows cold smoke: health HTTP 200 in approximately 9.9 seconds; listener working set approximately 62.6 MiB.
+- Candidate readiness returned HTTP 503 locally because live token/evidence were intentionally absent.
+- No migrations, queues, schedulers, or long-running workers were added.
+- The DataHub vertical-slice command is a finite foreground job; live duration and peak memory must be captured by the coordinator after promotion.
+- Seed and writeback use idempotent aspect UPSERTs. Reset uses reversible `status.removed=true` soft deletes; rerunning the vertical slice restores `status.removed=false`.
+- Run only one evidence-producing vertical slice at a time because receipt filenames are intentionally stable; concurrent runs could overwrite each other's local receipt files even though DataHub aspect writes are idempotent.
+- Persistent data is limited to the assigned project state root. No shared/global reset is implemented.
 
-## Required deployment handoff format
+## Remaining live evidence and blockers
 
-When requesting deployment, replace all remaining unverified values and include:
+There is no known implementation or test blocker. Coordinator-owned live work remains:
 
-1. Exact commit or immutable artifact identifier.
-2. Required environment variables without secret values.
-3. Build, test, seed, reset, run, and rollback commands.
-4. Health/readiness results.
-5. DataHub entities, reads, writes, and receipts.
-6. Filesystem volumes and disposable paths.
-7. Expected CPU, memory, startup time, and job duration.
-8. Known limitations and demo concurrency behavior.
+1. promote exact candidate `d3dbacf382589c1add8b8a8cbdb84ad503e5a1f0`;
+2. confirm readiness is 503 before live evidence;
+3. run the guarded vertical-slice command with the already injected service-account token;
+4. capture seed, MCP entity/lineage read, writeback, immediate reread, and readiness 200 evidence;
+5. run the confirmed soft reset, verify isolation, rerun the slice to restore, and retain both receipts.
+
+The local workstation still has no `DATAHUB_TOKEN`, no AWS Session Manager plugin, and no listeners on ports 8080/8000. Per coordinator direction, this chat did not install the plugin, request a token, access EC2, or deploy. Those local conditions do not invalidate the clean candidate; they explain why no live receipt is claimed here.
+
+## Promotion and rollback
+
+- Promote: exact candidate `d3dbacf382589c1add8b8a8cbdb84ad503e5a1f0`.
+- Roll back application code/image: previously deployed baseline `d6a73a935bb0259b9ace6b1eb1d79b115add3c91`.
+- DataHub fixture rollback: run the candidate's confirmed `reset-datahub` command before application rollback if the coordinator wants the project fixture soft-deleted. Do not use a global DataHub reset.
