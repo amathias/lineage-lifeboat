@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import pytest
-
 from lineage_lifeboat.config import ConfigurationError, Settings
 
 

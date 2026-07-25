@@ -35,7 +35,7 @@ safe parallel waves, healthy preconditions, and correct blast-radius selection.
 
 ## ADR-003: Pin the DataHub and MCP client contracts
 
-**Status:** Accepted; live environment receipt pending
+**Status:** Accepted; live reset/restore/writeback gate passed
 
 **Date:** 2026-07-25
 
@@ -99,3 +99,33 @@ complete read/write/reread slice can restore readiness. Reset also writes its
 own `started` receipt before mutation, then replaces it with either a typed
 failure receipt or completed evidence, so a stale successful reset receipt
 cannot survive a newer failed attempt.
+## ADR-009: Use embedded DuckDB and file artifacts for executable recovery
+
+**Status:** Accepted
+
+**Date:** 2026-07-25
+
+The judge demo uses an embedded DuckDB database plus deterministic JSON feature,
+model, and dashboard artifacts under the dedicated `APP_STATE_DIR`. This matches
+the existing DuckDB/Parquet graph contract, needs no paid or long-running
+infrastructure, and makes every outage and recovery action disposable and
+independently inspectable.
+
+Four adapters perform real work: Parquet snapshot restore, DuckDB SQL transform,
+Python artifact build, and report refresh. Each produces an idempotency key,
+content hash, action label, and validation evidence. A persisted run ledger binds
+approval to the exact plan ID, skips verified steps on resume, and blocks
+consumers after required validation failure. The optional post-recovery DataHub
+writeback reuses the already live-validated supported `globalTags` contract and
+fails honestly when credentials are absent.
+
+## ADR-010: Package a no-build single-screen judge console
+
+**Status:** Accepted
+
+**Date:** 2026-07-25
+
+The MVP UI is packaged HTML, CSS, and browser JavaScript served by FastAPI. It
+requires no Node build chain and keeps the clean-checkout demo to one Python
+installation and one service command. The console exposes the exact deterministic
+API transitions; it does not introduce a second planning or execution authority.

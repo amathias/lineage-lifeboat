@@ -5,14 +5,22 @@ import os
 from collections.abc import Callable
 from pathlib import Path
 from urllib.error import HTTPError, URLError
-from urllib.request import Request, urlopen
+from urllib.request import Request as UrlRequest
+from urllib.request import urlopen
 
-from fastapi import FastAPI, Response, status
+from fastapi import FastAPI, Request, Response, status
+from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict
 
 from lineage_lifeboat.config import Settings
-from lineage_lifeboat.domain.models import GraphSnapshot
+from lineage_lifeboat.domain.models import GraphSnapshot, RecoveryRun
 from lineage_lifeboat.safety import DataHubScopePolicy, NamespaceViolationError
+from lineage_lifeboat.workflow import (
+    RecoveryWorkflow,
+    RecoveryWorkflowError,
+    execute_with_datahub_writeback,
+)
 
 
 class ApiModel(BaseModel):
@@ -35,11 +43,25 @@ class ReadinessResponse(ApiModel):
     checks: dict[str, CheckResult]
 
 
+class DemoConfirmationRequest(ApiModel):
+    confirm_project: str
+
+
+class RecoveryPlanRequest(ApiModel):
+    run_id: str
+    requester: str = "incident-commander"
+
+
+class RecoveryApprovalRequest(ApiModel):
+    plan_id: str
+    approved_by: str
+
+
 DataHubProbe = Callable[[Settings], CheckResult]
 
 
 def probe_datahub_gms(settings: Settings) -> CheckResult:
-    request = Request(f"{settings.datahub_gms_url}/health")
+    request = UrlRequest(f"{settings.datahub_gms_url}/health")
     if settings.datahub_token:
         request.add_header("Authorization", f"Bearer {settings.datahub_token}")
     try:
@@ -214,6 +236,100 @@ def create_app(
         if not ready:
             response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
         return ReadinessResponse(ready=ready, checks=checks)
+
+    static_root = Path(__file__).resolve().parent / "static"
+    application.mount("/static", StaticFiles(directory=static_root), name="static")
+
+    def recovery_workflow() -> RecoveryWorkflow:
+        return RecoveryWorkflow(runtime_settings)
+
+    @application.exception_handler(RecoveryWorkflowError)
+    async def recovery_error_handler(
+        _request: Request, error: RecoveryWorkflowError
+    ) -> JSONResponse:
+        return JSONResponse(
+            status_code=status.HTTP_409_CONFLICT,
+            content={"detail": str(error), "error_type": type(error).__name__},
+        )
+
+    @application.get("/", response_class=HTMLResponse)
+    def recovery_console() -> HTMLResponse:
+        return HTMLResponse(
+            (static_root / "index.html").read_text(encoding="utf-8")
+        )
+
+    @application.get("/api/demo/state")
+    def demo_state() -> dict[str, object]:
+        return recovery_workflow().estate.inspect()
+
+    @application.get("/api/demo/graph")
+    def demo_graph() -> dict[str, object]:
+        snapshot = GraphSnapshot.model_validate_json(
+            (runtime_settings.demo_fixture_root / "graph_snapshot.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        estate_state = recovery_workflow().estate.inspect()["assets"]
+        return {
+            "fingerprint": snapshot.fingerprint,
+            "nodes": [
+                {
+                    "urn": asset.urn,
+                    "name": asset.display_name,
+                    "type": asset.artifact_type,
+                    "owner": asset.owner,
+                    "available": estate_state.get(asset.urn, False),
+                }
+                for asset in snapshot.assets
+            ],
+            "edges": [edge.model_dump(mode="json") for edge in snapshot.edges],
+        }
+
+    @application.post("/api/demo/initialize")
+    def initialize_demo(payload: DemoConfirmationRequest) -> dict[str, object]:
+        return recovery_workflow().initialize_estate(payload.confirm_project)
+
+    @application.post("/api/demo/outage")
+    def trigger_demo_outage(
+        payload: DemoConfirmationRequest,
+    ) -> dict[str, object]:
+        return recovery_workflow().trigger_outage(payload.confirm_project)
+
+    @application.post("/api/recovery/plan", response_model=RecoveryRun)
+    def compile_recovery(payload: RecoveryPlanRequest) -> RecoveryRun:
+        return recovery_workflow().compile_run(
+            payload.run_id,
+            requester=payload.requester,
+        )
+
+    @application.get("/api/recovery/{run_id}", response_model=RecoveryRun)
+    def get_recovery(run_id: str) -> RecoveryRun:
+        return recovery_workflow().get_run(run_id)
+
+    @application.post("/api/recovery/{run_id}/approve", response_model=RecoveryRun)
+    def approve_recovery(
+        run_id: str,
+        payload: RecoveryApprovalRequest,
+    ) -> RecoveryRun:
+        return recovery_workflow().approve(
+            run_id,
+            plan_id=payload.plan_id,
+            approved_by=payload.approved_by,
+        )
+
+    @application.post("/api/recovery/{run_id}/execute", response_model=RecoveryRun)
+    async def execute_recovery(run_id: str) -> RecoveryRun:
+        return await execute_with_datahub_writeback(
+            recovery_workflow(),
+            run_id,
+        )
+
+    @application.post("/api/recovery/{run_id}/resume", response_model=RecoveryRun)
+    async def resume_recovery(run_id: str) -> RecoveryRun:
+        return await execute_with_datahub_writeback(
+            recovery_workflow(),
+            run_id,
+        )
 
     return application
 

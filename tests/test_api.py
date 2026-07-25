@@ -6,7 +6,6 @@ from dataclasses import replace
 
 import httpx
 import pytest
-
 from lineage_lifeboat.api import CheckResult, create_app
 from lineage_lifeboat.config import Settings
 from lineage_lifeboat.datahub_vertical_slice import reset_datahub

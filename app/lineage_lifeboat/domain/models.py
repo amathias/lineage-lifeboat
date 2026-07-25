@@ -179,3 +179,84 @@ class RecoveryPlan(StrictModel):
                 return step
         raise KeyError(urn)
 
+class RecoveryRunStatus(StrEnum):
+    PLANNED = "planned"
+    APPROVED = "approved"
+    RUNNING = "running"
+    FAILED = "failed"
+    COMPLETED = "completed"
+
+
+class StepExecutionStatus(StrEnum):
+    PENDING = "pending"
+    RUNNING = "running"
+    FAILED = "failed"
+    VERIFIED = "verified"
+
+
+class ContextEvidence(StrictModel):
+    mode: str
+    graph_fingerprint: str
+    receipt_path: str | None = None
+    receipt_sha256: str | None = None
+    detail: str
+
+
+class ApprovalRecord(StrictModel):
+    plan_id: str
+    approved_by: str = Field(min_length=1)
+    approved_at: datetime
+
+
+class AdapterEvidence(StrictModel):
+    adapter: str
+    action: str
+    executed: bool
+    idempotency_key: str
+    target: str
+    output_sha256: str
+    details: dict[str, Any] = Field(default_factory=dict)
+
+
+class ValidationResult(StrictModel):
+    kind: str
+    required: bool
+    passed: bool
+    detail: str
+    evidence: dict[str, Any] = Field(default_factory=dict)
+
+
+class StepExecution(StrictModel):
+    step_id: str
+    target_urn: str
+    status: StepExecutionStatus = StepExecutionStatus.PENDING
+    attempts: int = 0
+    started_at: datetime | None = None
+    finished_at: datetime | None = None
+    adapter_evidence: AdapterEvidence | None = None
+    validations: tuple[ValidationResult, ...] = ()
+    error_type: str | None = None
+    error_detail: str | None = None
+
+
+class DataHubOutcome(StrictModel):
+    status: str
+    detail: str
+    receipt_path: str | None = None
+    receipt_sha256: str | None = None
+
+
+class RecoveryRun(StrictModel):
+    schema_version: int = 1
+    run_id: str
+    created_at: datetime
+    updated_at: datetime
+    status: RecoveryRunStatus
+    request: RecoveryRequest
+    plan: RecoveryPlan
+    context_evidence: ContextEvidence
+    approval: ApprovalRecord | None = None
+    steps: tuple[StepExecution, ...]
+    datahub_outcome: DataHubOutcome
+    report_json_path: str | None = None
+    report_markdown_path: str | None = None

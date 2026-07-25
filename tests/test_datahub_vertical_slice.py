@@ -8,7 +8,6 @@ from typing import Any
 
 import pytest
 from datahub.metadata.schema_classes import StatusClass
-
 from lineage_lifeboat.config import Settings
 from lineage_lifeboat.datahub_vertical_slice import (
     CONTEXT_RECEIPT,
@@ -25,13 +24,13 @@ from lineage_lifeboat.datahub_vertical_slice import (
     MissingDataHubTokenError,
     ResetConfirmationError,
     WritebackVerificationError,
+    _assert_lineage_evidence,
+    _entity_arguments,
+    _lineage_arguments,
     reset_datahub,
     run_vertical_slice,
     seed_datahub,
     writeback_and_verify,
-    _assert_lineage_evidence,
-    _entity_arguments,
-    _lineage_arguments,
 )
 from lineage_lifeboat.domain.models import GraphSnapshot
 from lineage_lifeboat.safety import NamespaceViolationError

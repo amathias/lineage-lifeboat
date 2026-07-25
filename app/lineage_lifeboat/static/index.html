@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lineage Lifeboat — Recovery Console</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <div class="grain"></div>
+  <header class="topbar">
+    <div class="brand"><span class="mark">LL</span><span>LINEAGE LIFEBOAT</span></div>
+    <div class="live"><span class="pulse"></span> DATAHUB-POWERED RECOVERY</div>
+  </header>
+  <main>
+    <section class="hero">
+      <div>
+        <p class="eyebrow">INCIDENT COMMAND / COMMERCE ANALYTICS</p>
+        <h1>Restore trust in<br><em>dependency order.</em></h1>
+        <p class="lede">Compile the verified DataHub lineage graph into an approval-gated recovery program. Execute real local adapters. Keep evidence for every step.</p>
+      </div>
+      <div class="hero-proof">
+        <div><strong id="asset-count">8</strong><span>catalog assets</span></div>
+        <div><strong>6</strong><span>lineage edges</span></div>
+        <div><strong>4</strong><span>real adapters</span></div>
+      </div>
+    </section>
+
+    <section class="control-deck panel">
+      <div class="panel-head"><span>01</span><h2>Incident controls</h2><p>Explicit actions only</p></div>
+      <div class="controls">
+        <button id="initialize" class="secondary">Initialize estate</button>
+        <button id="outage" class="danger">Trigger outage</button>
+        <label>Run ID<input id="run-id" value="judge-demo-001"></label>
+        <button id="compile" class="primary">Compile plan</button>
+        <button id="approve" class="approval" disabled>Approve exact plan</button>
+        <button id="execute" class="primary" disabled>Execute recovery</button>
+      </div>
+      <div id="notice" class="notice">Initialize the disposable estate to begin.</div>
+    </section>
+
+    <section class="workspace-grid">
+      <article class="panel graph-panel">
+        <div class="panel-head"><span>02</span><h2>DataHub impact graph</h2><p id="graph-mode">Captured graph</p></div>
+        <div id="graph" class="graph"><div class="empty">Graph loads after estate initialization.</div></div>
+      </article>
+      <article class="panel plan-panel">
+        <div class="panel-head"><span>03</span><h2>Recovery waves</h2><p>Deterministic DAG</p></div>
+        <div id="waves" class="waves"><div class="empty">Compile a plan to see dependency waves.</div></div>
+      </article>
+    </section>
+
+    <section class="panel evidence-panel">
+      <div class="panel-head"><span>04</span><h2>Execution & validation evidence</h2><p id="run-status">No active run</p></div>
+      <div class="evidence-layout">
+        <div id="timeline" class="timeline"><div class="empty">Approved execution evidence appears here.</div></div>
+        <aside class="scorecard">
+          <div><span>Verified</span><strong id="verified-count">0 / 6</strong></div>
+          <div><span>DataHub writeback</span><strong id="writeback-status">PENDING</strong></div>
+          <div><span>Cloud actions</span><strong>NONE</strong></div>
+          <div><span>Unrelated branch</span><strong>EXCLUDED</strong></div>
+        </aside>
+      </div>
+    </section>
+  </main>
+  <footer><span>REAL LOCAL EXECUTION</span><span>HUMAN-GATED</span><span>FAIL-CLOSED VALIDATION</span><span>RESUMABLE</span></footer>
+  <script src="/static/app.js"></script>
+</body>
+</html>

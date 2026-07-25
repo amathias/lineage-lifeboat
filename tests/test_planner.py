@@ -6,7 +6,6 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
-
 from lineage_lifeboat.domain.models import (
     AssetAvailability,
     GraphSnapshot,

@@ -14,6 +14,7 @@ authors = [
 ]
 dependencies = [
   "acryl-datahub==1.6.0.15",
+  "duckdb>=1.4,<2",
   "fastapi>=0.115,<1",
   "mcp==1.28.1",
   "networkx>=3.4,<4",
@@ -26,10 +27,21 @@ dev = [
   "httpx>=0.28,<1",
   "pytest>=8.3,<9",
   "pytest-cov>=6,<7",
+  "ruff>=0.9,<1",
 ]
 
 [tool.setuptools.packages.find]
 where = ["app"]
+[tool.setuptools.package-data]
+lineage_lifeboat = ["static/*"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+ignore = ["E501", "SIM117", "UP031"]
 
 [tool.pytest.ini_options]
 addopts = "-ra --strict-markers"

@@ -4,7 +4,6 @@ import json
 from pathlib import Path
 
 import pytest
-
 from lineage_lifeboat.domain.models import GraphSnapshot
 from lineage_lifeboat.safety import DataHubScopePolicy, NamespaceViolationError
 

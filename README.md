@@ -1,104 +1,197 @@
 # Lineage Lifeboat
 
-## Submission title
+**A DataHub-powered recovery compiler that turns live lineage into an approved,
+dependency-correct, executable recovery program.**
 
-**Lineage Lifeboat: Dependency-Aware Disaster Recovery with DataHub**
+Lineage Lifeboat is built for incident commanders who need to restore trust, not
+just infrastructure. It binds a recovery plan to DataHub lineage, orders every
+step deterministically, executes real adapters against a disposable local data
+estate, validates every result, supports safe resume, and writes the verified
+outcome back through a supported DataHub `globalTags` update when live
+credentials are configured.
 
-## Tagline
+## What judges can run
 
-Turn the data lineage graph into an executable, dependency-correct recovery plan.
-
-## One-sentence pitch
-
-Lineage Lifeboat uses DataHub's context graph to generate, execute, verify, and document recovery plans across an organization's data stack after an outage or regional failure.
-
-## Basic idea
-
-Traditional disaster-recovery products replicate infrastructure or restore individual systems. They do not understand that a warehouse table must recover before a transformation, feature set, model, API, and executive dashboard can safely return to service.
-
-Lineage Lifeboat reads schemas, ownership, health signals, platforms, and end-to-end lineage from DataHub. An agent converts that context into a topologically ordered recovery DAG, performs preflight checks, requests approval for risky actions, executes recovery adapters, validates every recovered asset, and writes the outcome back to DataHub.
-
-## Why it can win
-
-- **Meaningful DataHub usage:** DataHub is the dependency map, policy context, operational memory, and place where recovery results are recorded.
-- **Obvious real-world value:** Large data estates have runbooks but rarely have dependency-aware, cross-platform recovery orchestration.
-- **Strong live demo:** Trigger an outage, watch the blast radius appear, execute the generated recovery plan, then watch assets turn healthy in dependency order.
-- **Measurable result:** Recovery-plan coverage, execution success, validation success, recovery time, and stale-runbook steps avoided.
-- **Original positioning:** This is a recovery compiler, not another backup dashboard.
-
-## Primary user
-
-Data platform engineers, site-reliability engineers, analytics engineering leads, and incident commanders.
-
-## Challenge category
-
-Primary: **Agents That Do Real Work**  
-Secondary: **Open / Wildcard**
-
-## The memorable demo moment
-
-A simulated warehouse-region outage disables six connected assets. Lineage Lifeboat discovers the complete impact graph, refuses to recover a model before its features, runs the correct dependency-ordered plan, validates the results, and writes a signed recovery report back to DataHub.
-
-## Name rationale
-
-“Lineage Lifeboat” is memorable, directly evokes recovery, and avoids sounding like an official DataHub product. The subtitle supplies the searchable, judge-friendly explanation.
-
-## Workspace map
-
-- [Project brief](./PROJECT_BRIEF.md)
-- [Build plan](./BUILD_PLAN.md)
-- [Demo and submission](./DEMO_AND_SUBMISSION.md)
-- [Hackathon rules](./HACKATHON_RULES.md)
-- [AI builder instructions](./AGENTS.md)
-
-## First command for the builder
-
-Read `AGENTS.md`, `HACKATHON_RULES.md`, and `PROJECT_BRIEF.md` completely before choosing the implementation stack or writing code.
-## Current development workflow
+The complete local workflow needs no paid infrastructure and takes seconds:
 
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -e ".[dev]"
-.\.venv\Scripts\python.exe -m pytest
-.\.venv\Scripts\python.exe -m lineage_lifeboat.cli seed-local
+.\.venv\Scripts\python.exe -m lineage_lifeboat.cli demo-run `
+  --run-id judge-demo-001 `
+  --approved-by demo-incident-commander `
+  --confirm-project lineage-lifeboat
+```
+
+The command really executes this sequence:
+
+1. Creates a disposable embedded DuckDB commerce estate and derived artifacts.
+2. Deletes exactly six local recovery targets while preserving the healthy
+   customer prerequisite and unrelated inventory branch.
+3. Compiles the canonical DataHub graph into five topological recovery waves.
+4. Records explicit approval for the exact plan ID.
+5. Restores Parquet into DuckDB, runs two SQL transforms, builds feature/model
+   JSON artifacts, and refreshes the dashboard artifact.
+6. Runs required existence, schema, row-count, checksum, freshness,
+   business-rule, model-metric, and input-fingerprint validations.
+7. Persists a resumable run ledger plus JSON and Markdown reports.
+8. When `DATAHUB_TOKEN` is configured, performs the supported `globalTags`
+   writeback and immediately verifies it through DataHub MCP.
+
+No cloud action is performed by the demo. Every executed action targets the
+project's dedicated local state directory.
+
+## Judge-facing recovery console
+
+Start the service and open <http://localhost:8101>:
+
+```powershell
 .\.venv\Scripts\python.exe -m lineage_lifeboat
 ```
 
-The service listens on the coordinator-assigned internal port `8101` and exposes:
+The single-screen console exposes the complete story without a terminal:
 
-- `GET /api/health` for process liveness only.
-- `GET /api/readiness` for the fixed allocation, fixture, state directory, GMS health, and a verified live DataHub vertical-slice receipt.
+- initialize the disposable estate;
+- trigger the explicitly confirmed outage;
+- inspect the DataHub impact graph and excluded inventory branch;
+- compile deterministic dependency waves;
+- approve the exact plan;
+- execute or resume adapters;
+- inspect per-step adapter and validation evidence;
+- confirm final local recovery and DataHub writeback status.
 
-## Shared DataHub vertical slice
+The API contract is also visible at <http://localhost:8101/api/docs>.
 
-Open the coordinator tunnels in separate PowerShell windows, then inject `DATAHUB_TOKEN` into the current process without writing it to disk:
+## Recovery graph and real adapters
+
+| Wave | Recovery target(s) | Adapter | Required evidence |
+|---|---|---|---|
+| 1 | `raw.orders` | Parquet snapshot restore | exists, schema, row count |
+| 2 | `analytics.stg_orders` | DuckDB SQL transform | exists, schema, checksum |
+| 3 | `analytics.customer_revenue` | DuckDB SQL transform | exists, schema, nonnegative revenue |
+| 4 | `features.customer_value` | deterministic Python build | exists, freshness |
+| 4 | `dashboards.executive_revenue` | report refresh | exists, input fingerprint |
+| 5 | `models.churn_model` | deterministic Python build | artifact load, accuracy threshold |
+
+`raw.customers` is a healthy precondition. `inventory.forecast` is unrelated and
+must remain excluded and unchanged.
+
+Execution is resumable. Verified steps retain their idempotency keys and are not
+rerun after a later step fails. Required validation failures stop the run before
+any consumer can execute.
+
+## DataHub integration and preserved live proof
+
+The project uses open-source DataHub plus the DataHub MCP Server:
+
+- eight exact `lifeboat.` dataset fixtures and six lineage edges;
+- entity and complete direct-lineage reads through MCP;
+- deterministic planning bound to graph fingerprint
+  `72accff2049653af2a7134d41559d3bb0e8ad9a27edefe2ed986155b85dc524b`;
+- supported DataHub RestEmitter `MetadataChangeProposal` writeback using the
+  `globalTags` aspect;
+- immediate MCP reread proving the marker tag;
+- namespace-scoped reset with fail-closed readiness evidence.
+
+The deployed Milestone B candidate
+`f00c48362bcb6d09737c2809f89dea7675682075` passed live reset, restore,
+writeback, isolation, and cross-demo concurrency gates. Those coordinator-owned
+receipt hashes remain recorded in `COORDINATOR_HANDOFF.md`; the executable local
+workflow does not alter or replace them.
+
+For a fresh live integration run, provide the token out of band:
 
 ```powershell
-..\infra\scripts\open_tunnel.ps1 -Service gms
-..\infra\scripts\open_tunnel.ps1 -Service mcp
 $env:DATAHUB_GMS_URL = "http://127.0.0.1:8080"
 $env:DATAHUB_MCP_URL = "http://127.0.0.1:8000/mcp"
 $env:DATAHUB_TOKEN = "<supplied-out-of-band>"
+.\.venv\Scripts\python.exe -m lineage_lifeboat.cli datahub-vertical-slice `
+  --run-id live-evidence-001
 ```
 
-Run the full vertical slice:
+Commands fail honestly when the token or required proof is absent. Tokens are
+never written into plans, reports, examples, screenshots, or Git.
+
+## Approval, failure, and resume
+
+The CLI exposes each transition independently:
 
 ```powershell
-.\.venv\Scripts\python.exe -m lineage_lifeboat.cli datahub-vertical-slice --run-id milestone-b-live-001
+.\.venv\Scripts\python.exe -m lineage_lifeboat.cli demo-initialize --confirm-project lineage-lifeboat
+.\.venv\Scripts\python.exe -m lineage_lifeboat.cli demo-outage --confirm-project lineage-lifeboat
+.\.venv\Scripts\python.exe -m lineage_lifeboat.cli demo-plan --run-id incident-001
+.\.venv\Scripts\python.exe -m lineage_lifeboat.cli demo-approve --run-id incident-001 --plan-id <exact-plan-id> --approved-by incident-commander
+.\.venv\Scripts\python.exe -m lineage_lifeboat.cli demo-execute --run-id incident-001
 ```
 
-This command upserts exactly eight `lifeboat.` fixture datasets plus the exact project domain and tags, emits six lineage edges through the supported DataHub SDK, reads entity context and every direct lineage edge through the DataHub MCP Server, writes the `lifeboat-recovery-verified` tag to the canonical revenue entity, immediately rereads it through MCP, and stores scrubbed evidence under `.data/lineage-lifeboat/datahub-receipts/`.
+Running `demo-execute` again resumes a failed run. Previously verified steps are
+loaded from `APP_STATE_DIR/recovery-runs/<run-id>/run.json` and skipped.
 
-Reset is explicit and soft-deletes only the eight canonical dataset fixture
-URNs. It retains the exact project Domain and Tag controls because DataHub 1.6.0
-does not support the dataset `status` aspect on those entity types. Before the
-first mutation, reset invalidates the prior aggregate vertical-slice receipt, so
-readiness stays HTTP 503 until a fresh complete slice succeeds. Repeated reset is
-idempotent, failed attempts leave an explicit incomplete reset receipt, and
-reseeding restores `status.removed=false` on all eight datasets:
+## Evidence and examples
+
+- [Recovery plan](examples/recovery-plan.json)
+- [Recovery report (JSON)](examples/recovery-report.json)
+- [Recovery report (Markdown)](examples/recovery-report.md)
+- [Under-three-minute demo runbook](docs/DEMO_RUNBOOK.md)
+- [Architectural decisions](docs/DECISIONS.md)
+- [Coordinator live evidence handoff](COORDINATOR_HANDOFF.md)
+
+Regenerate deterministic examples:
 
 ```powershell
-.\.venv\Scripts\python.exe -m lineage_lifeboat.cli reset-datahub --confirm-project lineage-lifeboat
+.\.venv\Scripts\python.exe scripts\generate_examples.py
 ```
 
-`seed-local` remains a local-only deterministic fixture command and truthfully records `datahub_seeded: false`. Commands that mutate DataHub fail before contacting GMS when `DATAHUB_TOKEN` is absent. Readiness stays HTTP 503 until a verified vertical-slice receipt exists.
+Verify the full clean local story stays under three minutes:
+
+```powershell
+.\.venv\Scripts\python.exe scripts\verify_judge_demo.py
+```
+
+## Tests and lint
+
+```powershell
+.\.venv\Scripts\ruff.exe check app tests scripts
+.\.venv\Scripts\python.exe -m pytest --cov=lineage_lifeboat --cov-report=term-missing
+```
+
+The suite covers graph ordering, cycles, missing adapters, namespace isolation,
+DataHub read/write contracts, reset safety, approval gates, exact plan binding,
+idempotency, injected adapter failure and resume, validation blocking, report
+evidence, and the end-to-end console API.
+
+## API summary
+
+| Method | Path | Purpose |
+|---|---|---|
+| `GET` | `/api/health` | process liveness only |
+| `GET` | `/api/readiness` | live DataHub and receipt readiness |
+| `POST` | `/api/demo/initialize` | initialize confirmed disposable estate |
+| `POST` | `/api/demo/outage` | execute confirmed local outage |
+| `POST` | `/api/recovery/plan` | compile and persist a plan |
+| `POST` | `/api/recovery/{run_id}/approve` | approve the exact plan ID |
+| `POST` | `/api/recovery/{run_id}/execute` | execute the approved plan |
+| `POST` | `/api/recovery/{run_id}/resume` | resume without rerunning verified steps |
+| `GET` | `/api/recovery/{run_id}` | inspect run and evidence |
+
+## Scope and limitations
+
+Lineage Lifeboat demonstrates dependency-aware recovery compilation and verified
+execution for the included DuckDB, Python artifact, and report adapters. It does
+not replace backup infrastructure, perform cloud failover, guarantee recovery
+time, support every data platform, or autonomously execute production changes.
+The optional LLM layer remains out of scope; deterministic code is the planning
+and execution authority.
+
+## Repository map
+
+- `app/lineage_lifeboat/planner.py` - deterministic graph compiler
+- `app/lineage_lifeboat/estate.py` - disposable estate, adapters, validations
+- `app/lineage_lifeboat/workflow.py` - approval, execution, resume, reports
+- `app/lineage_lifeboat/datahub_vertical_slice.py` - live MCP and writeback proof
+- `app/lineage_lifeboat/static/` - judge-facing recovery console
+- `demo/snapshots/` - deterministic local recovery inputs
+- `examples/` - committed plan and report evidence
+
+Apache-2.0 licensed. Built as an independent project for the DataHub Agent
+Hackathon under the **Agents That Do Real Work** category.

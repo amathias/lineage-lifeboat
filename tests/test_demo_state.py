@@ -4,11 +4,10 @@ import json
 from dataclasses import replace
 
 import pytest
-
 from lineage_lifeboat.config import Settings
 from lineage_lifeboat.demo_state import (
-    SEEDED_SNAPSHOT,
     SEED_RECEIPT,
+    SEEDED_SNAPSHOT,
     UnsafeResetTargetError,
     reset_local,
     seed_local,

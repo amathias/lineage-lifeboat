@@ -288,6 +288,6 @@ class RecoveryCompiler:
 
     @staticmethod
     def _step_id(plan_id: str, urn: str) -> str:
-        digest = hashlib.sha256(f"{plan_id}:{urn}".encode("utf-8")).hexdigest()[:16]
+        digest = hashlib.sha256(f"{plan_id}:{urn}".encode()).hexdigest()[:16]
         return f"step-{digest}"
 

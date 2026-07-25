@@ -114,3 +114,16 @@ Prefer: “Compiles and verifies cross-platform recovery actions from DataHub co
 - [ ] DataHub is visibly part of both input and output.
 - [ ] The outage and reset are tested immediately before recording.
 - [ ] Captions or narration state what is real versus simulated.
+## Implemented judge workflow
+
+The packaged console at `/` now implements the six required screens as one
+continuous view: incident controls, DataHub impact graph, dependency waves,
+approval, execution/validation timeline, and final evidence/writeback status.
+The exact timed click path and truthful real/simulated labels are maintained in
+`docs/DEMO_RUNBOOK.md`.
+
+The local demo uses four real adapters against disposable DuckDB and JSON
+artifacts. `scripts/verify_judge_demo.py` recreates the estate in a temporary
+directory, executes all six recovery steps, verifies every required result, and
+fails if runtime reaches three minutes. Committed evidence is available under
+`examples/` and can be regenerated with `scripts/generate_examples.py`.

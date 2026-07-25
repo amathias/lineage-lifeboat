@@ -15,8 +15,8 @@ from datahub.emitter.mcp import MetadataChangeProposalWrapper
 from datahub.emitter.rest_emitter import DatahubRestEmitter
 from datahub.metadata.schema_classes import (
     DatasetPropertiesClass,
-    DomainsClass,
     DomainPropertiesClass,
+    DomainsClass,
     GlobalTagsClass,
     OwnerClass,
     OwnershipClass,
@@ -466,7 +466,6 @@ def _assert_entity_evidence(payload: Mapping[str, Any], urns: Sequence[str]) -> 
 def _assert_lineage_evidence(
     payload: Mapping[str, Any], snapshot: GraphSnapshot
 ) -> None:
-    text = _serialized(payload.get("get_lineage", {}))
     calls = payload.get("get_lineage", [])
     if not isinstance(calls, list):
         raise McpContractError("get_lineage evidence is not a call list")
