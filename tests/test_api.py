@@ -5,9 +5,11 @@ import json
 from dataclasses import replace
 
 import httpx
+import pytest
 
 from lineage_lifeboat.api import CheckResult, create_app
 from lineage_lifeboat.config import Settings
+from lineage_lifeboat.datahub_vertical_slice import reset_datahub
 from lineage_lifeboat.domain.models import GraphSnapshot
 
 
@@ -58,6 +60,16 @@ def _ready_settings(tmp_path) -> Settings:
         app_state_dir=tmp_path,
         datahub_token="test-only-token",
     )
+
+
+class PartiallyFailingResetPort:
+    def __init__(self) -> None:
+        self.mutated_asset_urns: list[str] = []
+
+    def reset(self, snapshot: GraphSnapshot) -> dict[str, object]:
+        first_urn = sorted(asset.urn for asset in snapshot.assets)[0]
+        self.mutated_asset_urns.append(first_urn)
+        raise RuntimeError("simulated failure after one dataset mutation")
 
 
 def test_health_is_liveness_only() -> None:
@@ -160,3 +172,46 @@ def test_readiness_is_503_for_stale_fixture_evidence(tmp_path) -> None:
         "ready": False,
         "detail": "DataHub vertical-slice receipt is stale for the current fixture",
     }
+
+
+def test_partial_reset_invalidates_stale_readiness_until_fresh_slice(tmp_path) -> None:
+    settings = replace(
+        _ready_settings(tmp_path),
+        app_state_dir=tmp_path / "lineage-lifeboat",
+    )
+    _write_vertical_slice_receipt(settings)
+    app = create_app(
+        settings,
+        datahub_probe=lambda _: CheckResult(ready=True, detail="connected"),
+    )
+    assert _get(app, "/api/readiness").status_code == 200
+    mutation = PartiallyFailingResetPort()
+
+    with pytest.raises(RuntimeError, match="after one dataset mutation"):
+        reset_datahub(settings, settings.project_slug, mutation)  # type: ignore[arg-type]
+
+    assert len(mutation.mutated_asset_urns) == 1
+    response = _get(app, "/api/readiness")
+    assert response.status_code == 503
+    assert response.json()["checks"]["datahub_vertical_slice"] == {
+        "ready": False,
+        "detail": (
+            "DataHub vertical-slice evidence was invalidated by reset; "
+            "run a fresh complete vertical slice"
+        ),
+    }
+    reset_receipt = json.loads(
+        (
+            settings.app_state_dir
+            / "datahub-receipts"
+            / "datahub-reset-receipt.json"
+        ).read_text()
+    )
+    assert reset_receipt["status"] == "failed"
+    assert reset_receipt["completed"] is False
+    assert reset_receipt["partial_mutation_possible"] is True
+    assert reset_receipt["error_type"] == "RuntimeError"
+    assert len(reset_receipt["target_asset_urns"]) == 8
+
+    _write_vertical_slice_receipt(settings)
+    assert _get(app, "/api/readiness").status_code == 200

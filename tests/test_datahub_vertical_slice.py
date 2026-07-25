@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from datahub.metadata.schema_classes import StatusClass
 
 from lineage_lifeboat.config import Settings
 from lineage_lifeboat.datahub_vertical_slice import (
@@ -84,10 +85,13 @@ class FakeMutationPort:
     def reset(self, snapshot: GraphSnapshot) -> dict[str, Any]:
         self.resets = tuple(sorted(asset.urn for asset in snapshot.assets))
         return {
-            "delete_mode": "soft_status_removed",
+            "delete_mode": "dataset_status_soft_delete",
             "asset_urns": list(self.resets),
-            "control_urns": list(CONTROL_URNS),
-            "deleted_count": len(self.resets) + len(CONTROL_URNS),
+            "soft_deleted_asset_count": len(self.resets),
+            "retained_control_urns": list(CONTROL_URNS),
+            "retained_control_count": len(CONTROL_URNS),
+            "idempotent": True,
+            "reseed_restores_assets": True,
         }
 
 
@@ -135,6 +139,15 @@ class FakeEmitter:
 
     def emit_mcp(self, proposal: Any) -> None:
         self.proposals.append(proposal)
+
+
+class DataHub160StrictEmitter(FakeEmitter):
+    def emit_mcp(self, proposal: Any) -> None:
+        if proposal.entityUrn in CONTROL_URNS and isinstance(
+            proposal.aspect, StatusClass
+        ):
+            raise AssertionError("DataHub 1.6.0 rejects status on Domain and Tag")
+        super().emit_mcp(proposal)
 
 
 
@@ -224,6 +237,51 @@ def test_sdk_seed_emits_only_fixture_and_exact_project_controls(tmp_path: Path) 
     assert evidence["lineage_edge_count"] == 6
     assert evidence["emitted_aspect_count"] == len(emitter.proposals) == 48
     assert PROJECT_TAG_URN in emitted_urns
+
+
+def test_sdk_reset_retains_controls_and_reseed_restores_partial_reset(
+    tmp_path: Path,
+) -> None:
+    emitter = DataHub160StrictEmitter()
+    settings = _settings(tmp_path, token="test-only-token")
+    port = DataHubSdkMutationPort(settings, emitter=emitter)  # type: ignore[arg-type]
+    snapshot = _snapshot()
+    fixture_urns = tuple(sorted(asset.urn for asset in snapshot.assets))
+    partially_reset_urns = fixture_urns[:3]
+    for urn in partially_reset_urns:
+        port._emit(urn, StatusClass(removed=True))
+
+    first = port.reset(snapshot)
+    second = port.reset(snapshot)
+
+    assert first == second
+    assert first["asset_urns"] == list(fixture_urns)
+    assert first["soft_deleted_asset_count"] == 8
+    assert first["retained_control_urns"] == list(CONTROL_URNS)
+    assert first["retained_control_count"] == 3
+    assert first["idempotent"] is True
+    assert first["reseed_restores_assets"] is True
+
+    port.seed(snapshot)
+
+    status_by_urn = {
+        urn: [
+            proposal.aspect.removed
+            for proposal in emitter.proposals
+            if proposal.entityUrn == urn
+            and isinstance(proposal.aspect, StatusClass)
+        ]
+        for urn in fixture_urns
+    }
+    assert status_by_urn == {
+        urn: ([True, True, True, False] if urn in partially_reset_urns else [True, True, False])
+        for urn in fixture_urns
+    }
+    assert not any(
+        proposal.entityUrn in CONTROL_URNS
+        and isinstance(proposal.aspect, StatusClass)
+        for proposal in emitter.proposals
+    )
 
 
 def test_seed_receipt_does_not_persist_token(tmp_path: Path) -> None:
@@ -318,6 +376,21 @@ def test_reset_requires_exact_confirmation_and_targets_only_fixture(tmp_path: Pa
 
     fixture_urns = tuple(sorted(asset.urn for asset in _snapshot().assets))
     assert mutation.resets == fixture_urns
-    assert receipt["evidence"]["control_urns"] == list(CONTROL_URNS)
+    assert receipt["completed"] is True
+    assert receipt["status"] == "completed"
+    assert receipt["readiness"]["invalidated_before_mutation"] is True
+    assert receipt["target_asset_urns"] == list(fixture_urns)
+    assert receipt["retained_control_urns"] == list(CONTROL_URNS)
+    assert receipt["evidence"]["retained_control_urns"] == list(CONTROL_URNS)
+    assert receipt["evidence"]["soft_deleted_asset_count"] == 8
     assert FOREIGN_URN not in receipt["evidence"]["asset_urns"]
     assert (settings.app_state_dir / "datahub-receipts" / RESET_RECEIPT).is_file()
+    invalidation = json.loads(
+        (
+            settings.app_state_dir
+            / "datahub-receipts"
+            / VERTICAL_SLICE_RECEIPT
+        ).read_text()
+    )
+    assert invalidation["operation"] == "datahub_vertical_slice_invalidated"
+    assert invalidation["verified"] is False

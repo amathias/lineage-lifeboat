@@ -305,20 +305,14 @@ class DataHubSdkMutationPort:
         for urn in asset_urns:
             policy.assert_urn(urn)
             self._emit(urn, StatusClass(removed=True))
-        control_urns = tuple(CONTROL_URNS)
-        if set(control_urns) != {
-            PROJECT_DOMAIN_URN,
-            PROJECT_TAG_URN,
-            WRITEBACK_TAG_URN,
-        }:
-            raise NamespaceViolationError("DataHub reset control allowlist was altered")
-        for urn in control_urns:
-            self._emit(urn, StatusClass(removed=True))
         return {
-            "delete_mode": "soft_status_removed",
+            "delete_mode": "dataset_status_soft_delete",
             "asset_urns": asset_urns,
-            "control_urns": list(CONTROL_URNS),
-            "deleted_count": len(asset_urns) + len(CONTROL_URNS),
+            "soft_deleted_asset_count": len(asset_urns),
+            "retained_control_urns": list(CONTROL_URNS),
+            "retained_control_count": len(CONTROL_URNS),
+            "idempotent": True,
+            "reseed_restores_assets": True,
         }
 
 
@@ -623,14 +617,58 @@ def reset_datahub(
             f"reset requires --confirm-project {settings.project_slug}"
         )
     snapshot, _ = _load_fixture(settings)
+    _scope_policy(settings).assert_snapshot(snapshot)
     writer = mutation_port or DataHubSdkMutationPort(settings)
-    evidence = dict(writer.reset(snapshot))
+    _persist_receipt(
+        settings,
+        VERTICAL_SLICE_RECEIPT,
+        {
+            "schema_version": 1,
+            "operation": "datahub_vertical_slice_invalidated",
+            "recorded_at": _now(),
+            "project_slug": settings.project_slug,
+            "verified": False,
+            "reason": "datahub_reset_started",
+            "restored_by": "fresh_complete_datahub_vertical_slice",
+        },
+    )
+    reset_started_at = _now()
     receipt = {
         "schema_version": 1,
         "operation": "datahub_fixture_reset",
-        "recorded_at": _now(),
+        "recorded_at": reset_started_at,
         "project_slug": settings.project_slug,
         "namespace": settings.datahub_urn_prefix,
+        "status": "started",
+        "completed": False,
+        "readiness": {
+            "invalidated_before_mutation": True,
+            "fresh_vertical_slice_required": True,
+        },
+        "target_asset_urns": sorted(asset.urn for asset in snapshot.assets),
+        "retained_control_urns": list(CONTROL_URNS),
+    }
+    _persist_receipt(settings, RESET_RECEIPT, receipt)
+    try:
+        evidence = dict(writer.reset(snapshot))
+    except Exception as error:
+        _persist_receipt(
+            settings,
+            RESET_RECEIPT,
+            {
+                **receipt,
+                "recorded_at": _now(),
+                "status": "failed",
+                "partial_mutation_possible": True,
+                "error_type": type(error).__name__,
+            },
+        )
+        raise
+    receipt = {
+        **receipt,
+        "recorded_at": _now(),
+        "status": "completed",
+        "completed": True,
         "evidence": evidence,
     }
     return _persist_receipt(settings, RESET_RECEIPT, receipt)

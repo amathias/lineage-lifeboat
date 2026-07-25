@@ -115,6 +115,17 @@ def _vertical_slice_evidence_check(settings: Settings) -> CheckResult:
             ready=False,
             detail="DataHub vertical-slice receipt is unreadable or invalid",
         )
+    if (
+        receipt.get("operation") == "datahub_vertical_slice_invalidated"
+        and receipt.get("project_slug") == settings.project_slug
+    ):
+        return CheckResult(
+            ready=False,
+            detail=(
+                "DataHub vertical-slice evidence was invalidated by reset; "
+                "run a fresh complete vertical slice"
+            ),
+        )
     expected = {
         "operation": "judge_ready_datahub_vertical_slice",
         "project_slug": settings.project_slug,

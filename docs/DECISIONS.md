@@ -78,3 +78,24 @@ The deterministic graph models the ML model and dashboard recovery artifacts as 
 **Date:** 2026-07-25
 
 GMS health alone does not prove that fixture ingestion, MCP context retrieval, or writeback works. The live vertical-slice command therefore persists separate seed, context-read, writeback/reread, and aggregate receipts under `APP_STATE_DIR/datahub-receipts`. Readiness remains false until the aggregate receipt identifies this project and records a verified end-to-end run. Receipts reject credential keys and the configured token value before writing.
+
+## ADR-008: Reset dataset status while retaining project controls
+
+**Status:** Accepted
+
+**Date:** 2026-07-25
+
+DataHub 1.6.0 accepts the `status` aspect for the eight dataset fixtures but
+rejects that aspect for the project Domain and Tag entities. The deterministic
+reset therefore emits `status.removed=true` only for the exact allowlisted
+dataset URNs and retains the three exact project controls. Repeated reset is
+idempotent, and seed emits `status.removed=false` for every fixture dataset so a
+partial prior reset is fully recoverable.
+
+Reset replaces the aggregate vertical-slice success receipt with an explicit
+invalidation receipt before its first DataHub mutation. A completed, partial,
+or failed reset therefore closes readiness immediately, and only a fresh
+complete read/write/reread slice can restore readiness. Reset also writes its
+own `started` receipt before mutation, then replaces it with either a typed
+failure receipt or completed evidence, so a stale successful reset receipt
+cannot survive a newer failed attempt.

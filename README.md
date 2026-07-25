@@ -89,7 +89,13 @@ Run the full vertical slice:
 
 This command upserts exactly eight `lifeboat.` fixture datasets plus the exact project domain and tags, emits six lineage edges through the supported DataHub SDK, reads entity context and every direct lineage edge through the DataHub MCP Server, writes the `lifeboat-recovery-verified` tag to the canonical revenue entity, immediately rereads it through MCP, and stores scrubbed evidence under `.data/lineage-lifeboat/datahub-receipts/`.
 
-Reset is explicit and soft-deletes only the canonical fixture URNs and exact project control URNs:
+Reset is explicit and soft-deletes only the eight canonical dataset fixture
+URNs. It retains the exact project Domain and Tag controls because DataHub 1.6.0
+does not support the dataset `status` aspect on those entity types. Before the
+first mutation, reset invalidates the prior aggregate vertical-slice receipt, so
+readiness stays HTTP 503 until a fresh complete slice succeeds. Repeated reset is
+idempotent, failed attempts leave an explicit incomplete reset receipt, and
+reseeding restores `status.removed=false` on all eight datasets:
 
 ```powershell
 .\.venv\Scripts\python.exe -m lineage_lifeboat.cli reset-datahub --confirm-project lineage-lifeboat
