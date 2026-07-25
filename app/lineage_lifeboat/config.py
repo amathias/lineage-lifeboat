@@ -48,10 +48,10 @@ class Settings:
                 values.get("APP_STATE_DIR", ".data/lineage-lifeboat")
             ),
             datahub_gms_url=values.get(
-                "DATAHUB_GMS_URL", "http://localhost:8080"
+                "DATAHUB_GMS_URL", "http://127.0.0.1:8080"
             ).rstrip("/"),
             datahub_mcp_url=values.get(
-                "DATAHUB_MCP_URL", "http://localhost:8000/mcp"
+                "DATAHUB_MCP_URL", "http://127.0.0.1:8000/mcp"
             ).rstrip("/"),
             datahub_token=values.get("DATAHUB_TOKEN") or None,
             datahub_domain=values.get(

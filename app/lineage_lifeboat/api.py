@@ -89,6 +89,82 @@ def _state_directory_check(settings: Settings) -> CheckResult:
     return CheckResult(ready=True, detail="state directory is readable and writable")
 
 
+def _datahub_token_check(settings: Settings) -> CheckResult:
+    if not settings.datahub_token:
+        return CheckResult(
+            ready=False,
+            detail="DATAHUB_TOKEN is not configured for supported DataHub writes",
+        )
+    return CheckResult(
+        ready=True,
+        detail="DataHub write credential is configured without exposing its value",
+    )
+
+
+def _vertical_slice_evidence_check(settings: Settings) -> CheckResult:
+    receipt_path = settings.app_state_dir / "datahub-receipts" / "vertical-slice-receipt.json"
+    try:
+        receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        return CheckResult(
+            ready=False,
+            detail="verified DataHub vertical-slice receipt is missing",
+        )
+    except (OSError, ValueError):
+        return CheckResult(
+            ready=False,
+            detail="DataHub vertical-slice receipt is unreadable or invalid",
+        )
+    expected = {
+        "operation": "judge_ready_datahub_vertical_slice",
+        "project_slug": settings.project_slug,
+        "verified": True,
+    }
+    if any(receipt.get(key) != value for key, value in expected.items()):
+        return CheckResult(
+            ready=False,
+            detail="DataHub vertical-slice receipt does not prove this project",
+        )
+    try:
+        fixture_path = settings.demo_fixture_root / "graph_snapshot.json"
+        snapshot = GraphSnapshot.model_validate_json(
+            fixture_path.read_text(encoding="utf-8")
+        )
+    except (OSError, ValueError):
+        return CheckResult(
+            ready=False,
+            detail="current fixture cannot be fingerprinted for evidence binding",
+        )
+    if receipt.get("fixture_fingerprint") != snapshot.fingerprint:
+        return CheckResult(
+            ready=False,
+            detail="DataHub vertical-slice receipt is stale for the current fixture",
+        )
+    receipt_dir = receipt_path.parent.resolve()
+    components = {
+        "seed_receipt_path": "datahub-seed-receipt.json",
+        "context_receipt_path": "context-read-receipt.json",
+        "writeback_receipt_path": "writeback-receipt.json",
+    }
+    for key, filename in components.items():
+        value = receipt.get(key)
+        expected_path = (receipt_dir / filename).resolve()
+        if not isinstance(value, str) or Path(value).resolve() != expected_path:
+            return CheckResult(
+                ready=False,
+                detail="DataHub vertical-slice receipt has invalid component paths",
+            )
+        if not expected_path.is_file():
+            return CheckResult(
+                ready=False,
+                detail=f"DataHub evidence component is missing: {filename}",
+            )
+    return CheckResult(
+        ready=True,
+        detail="seed, MCP context read, writeback, and reread receipt verified",
+    )
+
+
 def create_app(
     settings: Settings | None = None,
     datahub_probe: DataHubProbe = probe_datahub_gms,
@@ -120,6 +196,8 @@ def create_app(
             "fixture": _fixture_check(runtime_settings),
             "state_directory": _state_directory_check(runtime_settings),
             "datahub_gms": datahub_probe(runtime_settings),
+            "datahub_token": _datahub_token_check(runtime_settings),
+            "datahub_vertical_slice": _vertical_slice_evidence_check(runtime_settings),
         }
         ready = all(check.ready for check in checks.values())
         if not ready:

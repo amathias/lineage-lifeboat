@@ -41,7 +41,7 @@ A simulated warehouse-region outage disables six connected assets. Lineage Lifeb
 
 ## Name rationale
 
-‚ÄúLineage Lifeboat‚Äù is memorable, directly evokes recovery, and avoids sounding like an official DataHub product. The subtitle supplies the searchable, judge-friendly explanation.
+ìLineage Lifeboatî is memorable, directly evokes recovery, and avoids sounding like an official DataHub product. The subtitle supplies the searchable, judge-friendly explanation.
 
 ## Workspace map
 
@@ -66,9 +66,33 @@ python -m venv .venv
 
 The service listens on the coordinator-assigned internal port `8101` and exposes:
 
-- `GET /api/health` for process liveness.
-- `GET /api/readiness` for non-mutating fixture, state, namespace, and DataHub connectivity checks.
+- `GET /api/health` for process liveness only.
+- `GET /api/readiness` for the fixed allocation, fixture, state directory, GMS health, and a verified live DataHub vertical-slice receipt.
 
-The current `seed-local` command creates deterministic local fixture state only and explicitly does
-not claim DataHub ingestion. Live DataHub MCP reads and supported writeback remain the next
-integration gate.
+## Shared DataHub vertical slice
+
+Open the coordinator tunnels in separate PowerShell windows, then inject `DATAHUB_TOKEN` into the current process without writing it to disk:
+
+```powershell
+..\infra\scripts\open_tunnel.ps1 -Service gms
+..\infra\scripts\open_tunnel.ps1 -Service mcp
+$env:DATAHUB_GMS_URL = "http://127.0.0.1:8080"
+$env:DATAHUB_MCP_URL = "http://127.0.0.1:8000/mcp"
+$env:DATAHUB_TOKEN = "<supplied-out-of-band>"
+```
+
+Run the full vertical slice:
+
+```powershell
+.\.venv\Scripts\python.exe -m lineage_lifeboat.cli datahub-vertical-slice --run-id milestone-b-live-001
+```
+
+This command upserts exactly eight `lifeboat.` fixture datasets plus the exact project domain and tags, emits six lineage edges through the supported DataHub SDK, reads entity context and every direct lineage edge through the DataHub MCP Server, writes the `lifeboat-recovery-verified` tag to the canonical revenue entity, immediately rereads it through MCP, and stores scrubbed evidence under `.data/lineage-lifeboat/datahub-receipts/`.
+
+Reset is explicit and soft-deletes only the canonical fixture URNs and exact project control URNs:
+
+```powershell
+.\.venv\Scripts\python.exe -m lineage_lifeboat.cli reset-datahub --confirm-project lineage-lifeboat
+```
+
+`seed-local` remains a local-only deterministic fixture command and truthfully records `datahub_seeded: false`. Commands that mutate DataHub fail before contacting GMS when `DATAHUB_TOKEN` is absent. Readiness stays HTTP 503 until a verified vertical-slice receipt exists.

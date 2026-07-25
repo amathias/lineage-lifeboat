@@ -13,7 +13,9 @@ authors = [
   { name = "Lineage Lifeboat contributors" }
 ]
 dependencies = [
+  "acryl-datahub==1.6.0.15",
   "fastapi>=0.115,<1",
+  "mcp==1.28.1",
   "networkx>=3.4,<4",
   "pydantic>=2.10,<3",
   "uvicorn[standard]>=0.34,<1",

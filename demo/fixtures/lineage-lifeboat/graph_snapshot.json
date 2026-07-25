@@ -90,7 +90,7 @@
       ]
     },
     {
-      "urn": "urn:li:mlModel:(urn:li:dataPlatform:mlflow,lifeboat.churn_model,PROD)",
+      "urn": "urn:li:dataset:(urn:li:dataPlatform:mlflow,lifeboat.models.churn_model,PROD)",
       "display_name": "models.churn_model",
       "artifact_type": "model",
       "platform": "mlflow",
@@ -106,7 +106,7 @@
       ]
     },
     {
-      "urn": "urn:li:dashboard:(looker,lifeboat.executive_revenue)",
+      "urn": "urn:li:dataset:(urn:li:dataPlatform:looker,lifeboat.dashboards.executive_revenue,PROD)",
       "display_name": "dashboards.executive_revenue",
       "artifact_type": "dashboard",
       "platform": "looker",
@@ -177,22 +177,22 @@
     },
     {
       "upstream_urn": "urn:li:dataset:(urn:li:dataPlatform:featurestore,lifeboat.features.customer_value,PROD)",
-      "downstream_urn": "urn:li:mlModel:(urn:li:dataPlatform:mlflow,lifeboat.churn_model,PROD)",
+      "downstream_urn": "urn:li:dataset:(urn:li:dataPlatform:mlflow,lifeboat.models.churn_model,PROD)",
       "evidence": {
         "source": "datahub_mcp",
         "tool": "get_lineage",
         "upstream_urn": "urn:li:dataset:(urn:li:dataPlatform:featurestore,lifeboat.features.customer_value,PROD)",
-        "downstream_urn": "urn:li:mlModel:(urn:li:dataPlatform:mlflow,lifeboat.churn_model,PROD)"
+        "downstream_urn": "urn:li:dataset:(urn:li:dataPlatform:mlflow,lifeboat.models.churn_model,PROD)"
       }
     },
     {
       "upstream_urn": "urn:li:dataset:(urn:li:dataPlatform:duckdb,lifeboat.analytics.customer_revenue,PROD)",
-      "downstream_urn": "urn:li:dashboard:(looker,lifeboat.executive_revenue)",
+      "downstream_urn": "urn:li:dataset:(urn:li:dataPlatform:looker,lifeboat.dashboards.executive_revenue,PROD)",
       "evidence": {
         "source": "datahub_mcp",
         "tool": "get_lineage",
         "upstream_urn": "urn:li:dataset:(urn:li:dataPlatform:duckdb,lifeboat.analytics.customer_revenue,PROD)",
-        "downstream_urn": "urn:li:dashboard:(looker,lifeboat.executive_revenue)"
+        "downstream_urn": "urn:li:dataset:(urn:li:dataPlatform:looker,lifeboat.dashboards.executive_revenue,PROD)"
       }
     }
   ]

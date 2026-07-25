@@ -14,6 +14,8 @@ def test_defaults_match_coordinator_allocation() -> None:
     assert settings.datahub_project_tag == "project-lineage-lifeboat"
     assert settings.datahub_urn_prefix == "lifeboat."
     assert settings.demo_fixture_root.as_posix() == "demo/fixtures/lineage-lifeboat"
+    assert settings.datahub_gms_url == "http://127.0.0.1:8080"
+    assert settings.datahub_mcp_url == "http://127.0.0.1:8000/mcp"
 
 
 @pytest.mark.parametrize(

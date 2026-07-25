@@ -36,8 +36,8 @@ REVENUE_URN = (
 FEATURE_URN = (
     "urn:li:dataset:(urn:li:dataPlatform:featurestore,lifeboat.features.customer_value,PROD)"
 )
-MODEL_URN = "urn:li:mlModel:(urn:li:dataPlatform:mlflow,lifeboat.churn_model,PROD)"
-DASHBOARD_URN = "urn:li:dashboard:(looker,lifeboat.executive_revenue)"
+MODEL_URN = "urn:li:dataset:(urn:li:dataPlatform:mlflow,lifeboat.models.churn_model,PROD)"
+DASHBOARD_URN = "urn:li:dataset:(urn:li:dataPlatform:looker,lifeboat.dashboards.executive_revenue,PROD)"
 UNRELATED_URN = (
     "urn:li:dataset:(urn:li:dataPlatform:duckdb,lifeboat.inventory.forecast,PROD)"
 )
@@ -99,7 +99,7 @@ def test_compiles_expected_dependency_waves(
         (ORDERS_URN,),
         (STG_ORDERS_URN,),
         (REVENUE_URN,),
-        (DASHBOARD_URN, FEATURE_URN),
+        (FEATURE_URN, DASHBOARD_URN),
         (MODEL_URN,),
     )
     assert len(plan.steps) == 6

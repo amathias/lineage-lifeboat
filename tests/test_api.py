@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import asyncio
+import json
 from dataclasses import replace
 
 import httpx
 
 from lineage_lifeboat.api import CheckResult, create_app
 from lineage_lifeboat.config import Settings
+from lineage_lifeboat.domain.models import GraphSnapshot
 
 
 def _get(app, path: str) -> httpx.Response:
@@ -19,6 +21,43 @@ def _get(app, path: str) -> httpx.Response:
             return await client.get(path)
 
     return asyncio.run(request())
+
+
+def _write_vertical_slice_receipt(
+    settings: Settings, *, fingerprint: str | None = None
+) -> None:
+    receipt_dir = (settings.app_state_dir / "datahub-receipts").resolve()
+    receipt_dir.mkdir(parents=True, exist_ok=True)
+    components = {
+        "seed_receipt_path": receipt_dir / "datahub-seed-receipt.json",
+        "context_receipt_path": receipt_dir / "context-read-receipt.json",
+        "writeback_receipt_path": receipt_dir / "writeback-receipt.json",
+    }
+    for path in components.values():
+        path.write_text(json.dumps({"project_slug": settings.project_slug}), encoding="utf-8")
+    fixture = GraphSnapshot.model_validate_json(
+        (settings.demo_fixture_root / "graph_snapshot.json").read_text(encoding="utf-8")
+    )
+    (receipt_dir / "vertical-slice-receipt.json").write_text(
+        json.dumps(
+            {
+                "operation": "judge_ready_datahub_vertical_slice",
+                "project_slug": settings.project_slug,
+                "verified": True,
+                "fixture_fingerprint": fingerprint or fixture.fingerprint,
+                **{key: str(path) for key, path in components.items()},
+            }
+        ),
+        encoding="utf-8",
+    )
+
+
+def _ready_settings(tmp_path) -> Settings:
+    return replace(
+        Settings.from_env({}),
+        app_state_dir=tmp_path,
+        datahub_token="test-only-token",
+    )
 
 
 def test_health_is_liveness_only() -> None:
@@ -37,8 +76,9 @@ def test_health_is_liveness_only() -> None:
     }
 
 
-def test_readiness_passes_only_when_local_state_and_datahub_are_ready(tmp_path) -> None:
-    settings = replace(Settings.from_env({}), app_state_dir=tmp_path)
+def test_readiness_passes_only_with_token_and_bound_live_evidence(tmp_path) -> None:
+    settings = _ready_settings(tmp_path)
+    _write_vertical_slice_receipt(settings)
     app = create_app(
         settings,
         datahub_probe=lambda _: CheckResult(ready=True, detail="connected"),
@@ -50,10 +90,13 @@ def test_readiness_passes_only_when_local_state_and_datahub_are_ready(tmp_path) 
     assert response.json()["ready"] is True
     assert response.json()["checks"]["fixture"]["ready"] is True
     assert response.json()["checks"]["datahub_gms"]["ready"] is True
+    assert response.json()["checks"]["datahub_token"]["ready"] is True
+    assert response.json()["checks"]["datahub_vertical_slice"]["ready"] is True
 
 
 def test_readiness_is_503_when_datahub_is_unavailable(tmp_path) -> None:
-    settings = replace(Settings.from_env({}), app_state_dir=tmp_path)
+    settings = _ready_settings(tmp_path)
+    _write_vertical_slice_receipt(settings)
     app = create_app(
         settings,
         datahub_probe=lambda _: CheckResult(ready=False, detail="offline"),
@@ -66,4 +109,54 @@ def test_readiness_is_503_when_datahub_is_unavailable(tmp_path) -> None:
     assert response.json()["checks"]["datahub_gms"] == {
         "ready": False,
         "detail": "offline",
+    }
+
+
+def test_readiness_is_503_until_vertical_slice_is_verified(tmp_path) -> None:
+    settings = _ready_settings(tmp_path)
+    app = create_app(
+        settings,
+        datahub_probe=lambda _: CheckResult(ready=True, detail="connected"),
+    )
+
+    response = _get(app, "/api/readiness")
+
+    assert response.status_code == 503
+    assert response.json()["checks"]["datahub_vertical_slice"] == {
+        "ready": False,
+        "detail": "verified DataHub vertical-slice receipt is missing",
+    }
+
+
+def test_readiness_is_503_when_write_token_is_removed(tmp_path) -> None:
+    settings = replace(Settings.from_env({}), app_state_dir=tmp_path)
+    _write_vertical_slice_receipt(settings)
+    app = create_app(
+        settings,
+        datahub_probe=lambda _: CheckResult(ready=True, detail="connected"),
+    )
+
+    response = _get(app, "/api/readiness")
+
+    assert response.status_code == 503
+    assert response.json()["checks"]["datahub_token"] == {
+        "ready": False,
+        "detail": "DATAHUB_TOKEN is not configured for supported DataHub writes",
+    }
+
+
+def test_readiness_is_503_for_stale_fixture_evidence(tmp_path) -> None:
+    settings = _ready_settings(tmp_path)
+    _write_vertical_slice_receipt(settings, fingerprint="stale")
+    app = create_app(
+        settings,
+        datahub_probe=lambda _: CheckResult(ready=True, detail="connected"),
+    )
+
+    response = _get(app, "/api/readiness")
+
+    assert response.status_code == 503
+    assert response.json()["checks"]["datahub_vertical_slice"] == {
+        "ready": False,
+        "detail": "DataHub vertical-slice receipt is stale for the current fixture",
     }
