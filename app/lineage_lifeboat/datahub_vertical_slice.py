@@ -48,6 +48,7 @@ DATAHUB_SEED_RECEIPT = "datahub-seed-receipt.json"
 RESET_RECEIPT = "datahub-reset-receipt.json"
 WRITEBACK_RECEIPT = "writeback-receipt.json"
 VERTICAL_SLICE_RECEIPT = "vertical-slice-receipt.json"
+MCP_LINEAGE_RESULT_LIMIT = 100
 
 
 class DataHubIntegrationError(RuntimeError):
@@ -365,6 +366,20 @@ def _lineage_arguments(schema: Mapping[str, Any], root: str) -> dict[str, Any]:
     depth = _argument_name(properties, ("max_hops", "maxHops", "max_depth", "depth"))
     if depth:
         arguments[depth] = 1
+    result_limit = _argument_name(
+        properties,
+        ("max_results", "maxResults", "limit", "count", "page_size", "pageSize"),
+    )
+    if result_limit:
+        advertised_maximum = properties[result_limit].get("maximum")
+        bounded_limit = MCP_LINEAGE_RESULT_LIMIT
+        if (
+            isinstance(advertised_maximum, (int, float))
+            and not isinstance(advertised_maximum, bool)
+            and advertised_maximum >= 1
+        ):
+            bounded_limit = min(bounded_limit, int(advertised_maximum))
+        arguments[result_limit] = bounded_limit
     return arguments
 
 

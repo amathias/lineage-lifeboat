@@ -20,6 +20,7 @@ from lineage_lifeboat.datahub_vertical_slice import (
     WRITEBACK_RECEIPT,
     WRITEBACK_TAG_URN,
     DataHubSdkMutationPort,
+    McpContractError,
     MissingDataHubTokenError,
     ResetConfirmationError,
     WritebackVerificationError,
@@ -27,6 +28,7 @@ from lineage_lifeboat.datahub_vertical_slice import (
     run_vertical_slice,
     seed_datahub,
     writeback_and_verify,
+    _assert_lineage_evidence,
     _entity_arguments,
     _lineage_arguments,
 )
@@ -147,10 +149,61 @@ def test_official_mcp_tool_schemas_produce_downstream_batch_arguments() -> None:
                 "urn": {"type": "string"},
                 "upstream": {"type": "boolean", "default": True},
                 "max_hops": {"type": "integer", "default": 1},
+                "max_results": {"type": "integer", "default": 30},
             }
         },
         "urn:root",
-    ) == {"urn": "urn:root", "upstream": False, "max_hops": 1}
+    ) == {
+        "urn": "urn:root",
+        "upstream": False,
+        "max_hops": 1,
+        "max_results": 100,
+    }
+
+
+@pytest.mark.parametrize(
+    "argument_name",
+    ("max_results", "maxResults", "limit", "count", "page_size", "pageSize"),
+)
+def test_lineage_result_limit_honors_advertised_aliases(argument_name: str) -> None:
+    arguments = _lineage_arguments(
+        {
+            "properties": {
+                "urn": {"type": "string"},
+                argument_name: {"type": "integer", "maximum": 75},
+            }
+        },
+        "urn:root",
+    )
+
+    assert arguments[argument_name] == 75
+
+
+def test_lineage_evidence_requires_both_revenue_downstream_edges() -> None:
+    snapshot = _snapshot()
+    revenue_edges = tuple(
+        edge
+        for edge in snapshot.edges
+        if "lifeboat.analytics.customer_revenue" in edge.upstream_urn
+    )
+    assert len(revenue_edges) == 2
+    sibling_snapshot = snapshot.model_copy(update={"edges": revenue_edges})
+    lineage_call = {
+        "arguments": {
+            "urn": revenue_edges[0].upstream_urn,
+            "upstream": False,
+            "max_hops": 1,
+            "max_results": 100,
+        },
+        "result": {"content": [edge.downstream_urn for edge in revenue_edges]},
+    }
+
+    _assert_lineage_evidence({"get_lineage": [lineage_call]}, sibling_snapshot)
+
+    lineage_call["result"] = {"content": [revenue_edges[0].downstream_urn]}
+    with pytest.raises(McpContractError, match="dashboards.executive_revenue"):
+        _assert_lineage_evidence({"get_lineage": [lineage_call]}, sibling_snapshot)
+
 
 def test_real_mutation_port_fails_honestly_without_token(tmp_path: Path) -> None:
     with pytest.raises(MissingDataHubTokenError, match="DATAHUB_TOKEN"):
