@@ -8,19 +8,20 @@ This project chat owns Lineage Lifeboat product code, tests, demo evidence, and 
 
 | Field | Value |
 |---|---|
-| Status | `implementation complete; coordinator promotion and corrected live reset/restore evidence pending` |
+| Status | `Milestone B complete; corrected live reset/restore/concurrency gate passed` |
 | Exact deployment candidate | `f00c48362bcb6d09737c2809f89dea7675682075` |
 | Candidate subject | `fix: make DataHub reset fail closed` |
 | Superseded live candidate | `12ca7b9a10222a55cd79f24c72fd800ebe0b0d47` |
-| Currently deployed baseline | `12ca7b9a10222a55cd79f24c72fd800ebe0b0d47` |
+| Currently deployed candidate | `f00c48362bcb6d09737c2809f89dea7675682075` |
 | Local test result | `42 passed` |
 | Local coverage | `82% total` |
 | Git-archive packaging smoke | `passed: strict UTF-8 README decode, wheel build, isolated install, isolated import` |
-| Coordinator live evidence received | `12ca7b9a... slice verified; its reset failed after eight dataset soft deletes` |
+| Coordinator live evidence received | `reset, fail-closed readiness, restore, writeback, isolation, and two-demo concurrency passed` |
+| Post-evidence snapshot | `snap-06d2125eaa1106558 mounted read-only; current aggregate receipt hash matched` |
 | Live deployment performed here | `no` |
-| Live DataHub receipt claimed here | `no` |
+| Evidence ownership | `coordinator-captured hashes recorded below; no secret values included` |
 
-The candidate implements the smallest guarded real-DataHub slice: supported SDK upserts, MCP entity and complete direct-edge lineage reads, one tag writeback, immediate MCP reread, scrubbed receipts, deterministic namespace-scoped reset, and evidence-gated readiness.
+The deployed candidate implements the smallest guarded real-DataHub slice: supported SDK upserts, MCP entity and complete direct-edge lineage reads, one tag writeback, immediate MCP reread, scrubbed receipts, deterministic namespace-scoped reset, and evidence-gated readiness.
 It retains the valid BOM-free UTF-8 README and bounded 100-result MCP lineage request from `12ca7b9a...`. The new reset is compatible with DataHub 1.6.0: it applies `status.removed=true` only to the eight dataset fixtures, retains all three Domain/Tag controls, handles repeated or partial prior reset idempotently, records started/failed/completed reset state truthfully, and invalidates successful slice readiness before its first mutation.
 
 ## Exact commands
@@ -110,7 +111,7 @@ Before the first DataHub mutation, reset replaces `vertical-slice-receipt.json` 
 Repeated reset is idempotent. Seed always emits `status.removed=false` for all eight datasets, so rerunning the complete slice recovers a partial or completed prior reset and captures new read/write/reread evidence:
 
 ```bash
-python -m lineage_lifeboat.cli datahub-vertical-slice --run-id coordinator-milestone-b-restore-001
+python -m lineage_lifeboat.cli datahub-vertical-slice --run-id coordinator-milestone-b-restore-003
 ```
 
 A missing or incorrect confirmation fails closed before receipt invalidation or mutation. Foreign URNs and namespaced-but-nonfixture writeback targets are rejected. No global delete or global reset exists.
@@ -187,14 +188,43 @@ Receipts contain the exact MCP tool results and SHA-256 evidence hashes. Before 
 
 `vertical-slice-receipt.json` is the readiness authority. Reset overwrites it before mutation with `operation=datahub_vertical_slice_invalidated`, `verified=false`, and `reason=datahub_reset_started`; only a fresh complete vertical slice can replace it with verified evidence. `datahub-reset-receipt.json` independently distinguishes started, failed/possibly partial, and completed reset attempts so an older successful reset receipt cannot survive a newer failure.
 
+### Coordinator-owned live evidence hashes
+
+Corrected reset:
+
+| Artifact | SHA-256 |
+|---|---|
+| Completed reset receipt | `0d6d92b2ccafa60daa2bc54e0d56b041d942cb9584e95f3f1c55abe3f750bf` |
+| Readiness invalidation tombstone | `e59057d2e0ae23d61fb59be7b3add8d9541689a3773d38a86fff5723f47bbc` |
+
+Successful idempotent restore `coordinator-milestone-b-restore-003`:
+
+| Artifact | SHA-256 |
+|---|---|
+| Seed receipt | `10598b32591b4b74ba3326d12271c4a6d7b527e7def31999e16f4a975a3c6e25` |
+| Context receipt | `4eadde7c42688e4bf53015e1cdffcc91da324c51dd99eb1538efeaa7f3f0f261` |
+| Writeback receipt | `39fdc50a77496fd6a759341a76a88f2c0a4ba36a7c965341945311b226cee684` |
+| Aggregate receipt | `5eaf115b4064ee4c95db652779e4b8b3664c3960c165c5a856bb4a717d3769b1` |
+
+Later two-demo concurrency run `coordinator-concurrency-live-002`:
+
+| Artifact | SHA-256 |
+|---|---|
+| Seed receipt | `faafefe45ad14412f6e6af3381339395a58bf4880c26b92286d4f7c9bd63f89d` |
+| Context receipt | `525a645fff707cd41107e386e3aad913c9207ab5dd46cf71fa4b625215ca8dd8` |
+| Writeback receipt | `7b1ada1879cbd62eab71a9fa4cd1f3cb8c434f235622ece3c129af14b3defc70` |
+| Aggregate receipt | `63d3e5f7245c9d1da9e239caf5321df8dcd6e95163f3685884557856ef461ba6` |
+
+The post-evidence snapshot `snap-06d2125eaa1106558` was mounted read-only and its aggregate receipt SHA-256 matched `63d3e5f7...` exactly.
+
 ## Health and truthful readiness
 
 - `GET /api/health` is liveness only and never claims DataHub readiness.
 - Candidate `GET /api/readiness` requires all of: fixed allocation, valid namespaced fixture, readable/writable state directory, GMS health, configured `DATAHUB_TOKEN`, and a vertical-slice receipt bound to the current fixture fingerprint.
 - The aggregate receipt must reference the three exact seed/context/writeback files inside the project receipt directory; missing, relocated, stale, or explicitly invalidated evidence fails closed.
-- Fresh state returns HTTP 503 until a complete live slice succeeds. Promotion over persistent verified `12ca7b9a...` evidence may initially remain 200 because the fixture and proof contract are unchanged.
+- Fresh state returns HTTP 503 until a complete live slice succeeds.
 - As soon as a confirmed reset begins, the candidate invalidates the aggregate success receipt before any GMS mutation. Completed, partial, and failed resets therefore hold readiness at HTTP 503 until a fresh complete live slice succeeds.
-- The deployed `12ca7b9a...` baseline exposed the stale-evidence defect by remaining HTTP 200 after all eight datasets had been soft-deleted and the reset then failed on the Domain control. This candidate closes that exact gap.
+- The corrected live gate proved readiness changed HTTP 200 to 503 after the reset tombstone, then returned to 200 only after the successful fresh restore slice.
 
 ## Environment contract
 
@@ -230,31 +260,34 @@ DATAHUB_MCP_URL=http://127.0.0.1:8000/mcp
 - No migrations, queues, schedulers, or long-running workers were added.
 - The DataHub vertical-slice command is a finite foreground job; live duration and peak memory must be captured by the coordinator after promotion.
 - Seed and writeback use idempotent aspect UPSERTs. Reset uses reversible `status.removed=true` only for the eight datasets, retains the three controls, and rerunning the vertical slice restores `status.removed=false` for every dataset.
-- Run only one evidence-producing vertical slice at a time because receipt filenames are intentionally stable; concurrent runs could overwrite each other's local receipt files even though DataHub aspect writes are idempotent.
+- The first immediate restore attempt failed closed before writeback on one transiently missing dashboard lineage edge after status restoration. Idempotent retry `coordinator-milestone-b-restore-003` succeeded after indexing settled; allow an index-settle retry in operations without weakening lineage validation.
+- Run only one Lifeboat evidence-producing vertical slice at a time because its receipt filenames are intentionally stable. Cross-demo concurrency is safe through separate namespaces and state roots: `coordinator-concurrency-live-002` succeeded in parallel with Forget-Me-Graph.
 - Persistent data is limited to the assigned project state root. No shared/global reset is implemented.
 
-## Remaining live evidence and blockers
+## Live gate closeout and remaining milestone
 
-There is no known local implementation, test, or packaging blocker. Coordinator-provided live evidence for deployed `12ca7b9a10222a55cd79f24c72fd800ebe0b0d47` is:
+Milestone B is closed for exact deployed candidate `f00c48362bcb6d09737c2809f89dea7675682075`:
 
-- the full vertical slice succeeded: all MCP entity/lineage reads, supported `globalTags` writeback, immediate reread, aggregate receipt, and readiness HTTP 200;
-- confirmed reset successfully soft-deleted all eight dataset fixtures, then GMS returned HTTP 422 `Unknown aspect status for entity domain` on `urn:li:domain:lifeboat`;
-- the failed reset produced no successful reset receipt, but readiness incorrectly remained HTTP 200 against the older verified slice receipt;
-- no global deletion occurred, and the coordinator began a project-scoped reseed/restore. This handoff does not claim the outcome of that coordinator-owned restore.
+- reset completed with exactly eight dataset soft deletes and all three controls retained unchanged;
+- readiness changed from HTTP 200 to 503 with the explicit tombstone;
+- all 105 Forget-Me-Graph aspect rows were byte-for-byte unchanged by reset and remained unchanged through restore;
+- all six Lifeboat Domain/Tag aspect rows were retained unchanged;
+- the first immediate restore attempt failed closed before writeback on transient MCP index lag;
+- retry `coordinator-milestone-b-restore-003` restored all eight datasets, verified every required MCP lineage edge, completed supported `globalTags` writeback/reread, and returned readiness to HTTP 200;
+- `coordinator-concurrency-live-002` later succeeded alongside Forget-Me-Graph, and the read-only post-evidence snapshot reproduced the final aggregate receipt hash exactly.
 
-Coordinator-owned live work remains:
+There is no remaining shared-DataHub blocker. The remaining project milestone is the judge-facing executable recovery workflow:
 
-1. promote exact candidate `f00c48362bcb6d09737c2809f89dea7675682075`;
-2. run the confirmed reset and verify readiness becomes HTTP 503 before the first GMS proposal;
-3. verify `datahub-reset-receipt.json` records `status=completed`, `completed=true`, eight soft-deleted dataset URNs, and three retained controls, with no control `status` proposal;
-4. verify the Domain and Tags remain and no foreign/global entity was changed;
-5. rerun the guarded vertical slice with a new run ID, confirm all eight datasets are restored, and capture new MCP read/write/reread evidence plus readiness HTTP 200;
-6. retain both reset and restore receipts/screenshots for the judge evidence bundle.
+1. build the disposable local outage/recovery estate and at least three real idempotent adapters;
+2. connect live DataHub-derived context to the deterministic recovery planner;
+3. add explicit approval, execution retry/resume, validation gates, and retained step evidence;
+4. export judge-ready JSON/Markdown plan and report examples;
+5. complete the incident/graph/plan/approval/execution/report UI and rehearse the under-three-minute demo.
 
-The local workstation still has no `DATAHUB_TOKEN`, no AWS Session Manager plugin, and no listeners on ports 8080/8000. Per coordinator direction, this chat did not install the plugin, request a token, access EC2/AWS, or deploy. Those local conditions do not invalidate the clean candidate; they explain why no new live receipt is claimed here.
+This documentation-only update did not change product code, deploy, access AWS/EC2, open tunnels, or handle a token.
 
 ## Promotion and rollback
 
-- Promote: exact candidate `f00c48362bcb6d09737c2809f89dea7675682075`.
-- Roll back application code/image: currently deployed candidate `12ca7b9a10222a55cd79f24c72fd800ebe0b0d47`.
+- Current deployed application code/image: exact candidate `f00c48362bcb6d09737c2809f89dea7675682075`; no Milestone B promotion remains pending.
+- Roll back application code/image only if necessary: previous candidate `12ca7b9a10222a55cd79f24c72fd800ebe0b0d47`.
 - DataHub fixture rollback: use the confirmed `reset-datahub` command from candidate `f00c48362bcb6d09737c2809f89dea7675682075`; do not use the reset implementation from `12ca7b9a...`, and never use a global DataHub reset.
