@@ -4,6 +4,24 @@
 
 This project chat owns Lineage Lifeboat product code, tests, demo evidence, and submission behavior. The portfolio coordinator owns shared DataHub, AWS, promotion, secrets, tunnels, and live evidence capture. This milestone did not deploy, access EC2, or modify another workspace.
 
+## 2026-07-27 release hardening
+
+| Field | Value |
+|---|---|
+| Exact product candidate | `b1e89a518810ffb12eaad09b1fd15d2e7e9e87fc` |
+| Deployed candidate | unchanged: `a304df864a9eedff91862d0d4642484f0ab89984` |
+| Safety correction | dataset namespace validation now parses the DataHub dataset URN structurally and checks the dataset-name position; prefixes hidden in the platform, environment, or a foreign name fail closed |
+| Judge entrypoint | live/source/runbook links, truthful pending-video state, three-step journey, and Mermaid architecture are at the top of `README.md` |
+| Continuous integration | `.github/workflows/ci.yml` runs Ruff plus the full test/coverage suite on pushes, pull requests, and manual dispatch |
+| Verification | 56 tests passed; 85% coverage; Ruff clean |
+| Exact-commit archive | strict UTF-8 README decode, wheel build, isolated install, and isolated import passed |
+| Wheel SHA-256 | `b1bb9c6c652c7892674488c00ca649ec5e29a65d1579a6329d6bbd95ff3bd4fe` |
+| Cloud/live activity | none; no AWS, EC2, token, DataHub mutation, or deployment |
+
+This candidate is a fail-closed local safety and release-presentation improvement. It does not
+invalidate or replace the coordinator-owned live evidence for the currently deployed candidate.
+Promotion, if desired, remains a separate coordinator decision.
+
 ## Milestone C immutable-evidence live closeout
 
 | Field | Value |
