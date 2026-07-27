@@ -1,89 +1,230 @@
-# Lineage Lifeboat: Under-Three-Minute Demo Runbook
+# Lineage Lifeboat: Under-Three-Minute Recording Runbook
 
-Target: **2 minutes 35 seconds**. Run `scripts/verify_judge_demo.py` immediately
-before recording to prove the local workflow still completes within the limit.
+Target finished video: **2 minutes 42 seconds**.
+Hard ceiling: **2 minutes 59 seconds**.
 
-## Preflight
+Public application:
+<https://lifeboat.datahub-hackathon.aaronmathias.com>
 
-```powershell
-.\.venv\Scripts\python.exe -m pip install -e ".[dev]"
-.\.venv\Scripts\ruff.exe check app tests scripts
-.\.venv\Scripts\python.exe -m pytest
-.\.venv\Scripts\python.exe scripts\verify_judge_demo.py
-.\.venv\Scripts\python.exe -m lineage_lifeboat
-```
+Public repository:
+<https://github.com/amathias/lineage-lifeboat>
 
-Open `http://localhost:8101`. Keep DataHub open in a second tab only when a live
-credential has already been injected out of band. Never show the token or AWS.
+This is the canonical recording artifact. The main take uses only the public
+application and public repository. Do not open AWS, EC2, a tunnel, a terminal
+containing environment variables, or raw runtime receipts while recording.
 
-## Recording sequence
+## One-time recording setup
 
-### 0:00-0:18 - Why recovery order matters
+- Use a 1920x1080 or larger capture area.
+- Set browser zoom so the graph, recovery waves, and evidence scorecard are
+  legible without scrolling during execution.
+- Disable desktop notifications, password-manager overlays, bookmarks
+  containing private names, and unrelated browser extensions.
+- Open only these tabs:
+  1. <https://lifeboat.datahub-hackathon.aaronmathias.com>
+  2. <https://github.com/amathias/lineage-lifeboat>
+- Use no copyrighted music or third-party footage.
+- Record in English or add accurate English captions.
 
-Show the headline and eight-asset graph.
+## Public preflight
 
-> Backups restore systems. They do not prove when downstream data products are
-> trustworthy. Lineage Lifeboat turns DataHub lineage into the recovery program.
+Perform this immediately before the take:
 
-Click **Initialize estate**. State that this creates real local DuckDB tables and
-file artifacts; it does not simulate a successful action.
+1. Confirm the page loads:
+   <https://lifeboat.datahub-hackathon.aaronmathias.com>
+2. Confirm liveness is HTTP 200:
+   <https://lifeboat.datahub-hackathon.aaronmathias.com/api/health>
+3. Confirm readiness is HTTP 200:
+   <https://lifeboat.datahub-hackathon.aaronmathias.com/api/readiness>
+4. Return to the main page and refresh once.
+5. Choose a run ID that has never been used. Use `devpost-final-001` for the
+   first take; increment the numeric suffix for every retake.
+6. Enter the chosen run ID before triggering the outage.
 
-### 0:18-0:42 - Trigger the outage
+If readiness is not HTTP 200, the graph context does not show
+`verified live datahub mcp`, or the final DataHub status does not become
+`VERIFIED`, stop the take. Do not edit the video to imply live proof that the
+application did not produce.
 
-Click **Trigger outage**. Six assets turn red while `raw.customers` stays healthy
-and `inventory.forecast` remains excluded.
+## Exact recording sequence
 
-> This is an executed deletion against a disposable local estate. No cloud or
+### 0:00-0:14 — Establish the problem
+
+**On screen**
+
+- Show the Lineage Lifeboat title and the eight-asset commerce graph.
+
+**Narration**
+
+> Backups restore infrastructure. They do not prove when downstream data
+> products are trustworthy. Lineage Lifeboat turns live DataHub lineage into an
+> approved, dependency-correct recovery program.
+
+### 0:14-0:29 — Initialize the disposable estate
+
+**On screen**
+
+- Click **Initialize estate**.
+- Point briefly to the eight healthy assets.
+
+**Narration**
+
+> This creates a real disposable DuckDB and artifact estate. No cloud or
 > production system is touched.
 
-### 0:42-1:12 - Compile from DataHub context
+### 0:29-0:45 — Execute the outage
 
-Click **Compile plan**. Point to the graph context mode, five recovery waves,
-healthy prerequisite, and unrelated excluded branch.
+**On screen**
 
-> The compiler is deterministic. It binds the plan to the DataHub graph
-> fingerprint and refuses cycles, unknown dependencies, or unsupported adapters.
+- Click **Trigger outage**.
+- Show six assets change to outage state.
+- Point to healthy `raw.customers` and excluded `inventory.forecast`.
 
-### 1:12-1:32 - Human approval
+**Narration**
 
-Click **Approve exact plan**.
+> The confirmed outage removes six connected recovery targets, preserves the
+> healthy customer prerequisite, and leaves the unrelated inventory branch
+> untouched.
 
-> Execution cannot begin until the incident commander approves this exact plan
-> ID. A stale or mismatched approval fails closed.
+### 0:45-1:10 — Compile from verified DataHub context
 
-### 1:32-2:08 - Execute and validate
+**On screen**
 
-Click **Execute recovery**. Watch six timeline entries become verified.
+- Confirm the unique run ID is present.
+- Click **Compile plan**.
+- Point to `verified live datahub mcp`.
+- Show five dependency waves and the parallel fourth wave.
 
-Call out the real adapters: Parquet restore, two DuckDB SQL transforms, Python
-feature/model builds, and dashboard refresh. Point to validations and attempts.
+**Narration**
 
-> A validation failure stops consumers. Resume skips already verified steps and
-> reuses idempotency keys.
+> Live MCP evidence proves the project entities and complete direct lineage.
+> The deterministic compiler binds that graph fingerprint to five topological
+> waves. Missing edges, cycles, unsupported adapters, or stale proof fail closed.
 
-### 2:08-2:28 - Evidence and DataHub writeback
+### 1:10-1:27 — Human approval
 
-Show `6 / 6` verified and the DataHub outcome. With live credentials the outcome
-must say `VERIFIED`; without them it must truthfully say `NOT_CONFIGURED`.
+**On screen**
 
-Open the final report or DataHub marker if recording the live environment.
+- Pause on the compiled waves.
+- Click **Approve exact plan**.
+- Show that execution becomes enabled only after approval.
 
-> The run ledger, adapter hashes, validations, and supported DataHub writeback
-> become evidence for the next engineer or agent.
+**Narration**
 
-### 2:28-2:35 - Close
+> Execution is locked until an incident commander approves this exact persisted
+> plan ID. A missing or mismatched approval cannot execute.
 
-> Lineage Lifeboat restores trust in dependency order.
+### 1:27-2:03 — Execute and validate
 
-## Failure/resume optional take
+**On screen**
 
-Only include this if timing remains under three minutes. Use the tested injected
-failure scenario during development, show the run fail closed, then click
-**Resume recovery**. Never stage an unreliable live failure for the submission.
+- Click **Execute recovery**.
+- Watch the six timeline entries become verified.
+- Point to adapter actions, validation counts, and attempt numbers.
 
-## Claims
+**Narration**
 
-- Local DuckDB and artifact actions: **executed and verified**.
-- DataHub MCP reads/writeback: **live only when the receipt says verified**.
-- Cloud recovery: **not performed**.
-- Production autonomy or RTO guarantee: **not claimed**.
+> Four real adapter families restore Parquet into DuckDB, run two SQL
+> transformations, build the feature and model artifacts, and refresh the
+> report. Required schema, count, checksum, freshness, business-rule, model, and
+> input-fingerprint checks block consumers until they pass.
+
+### 2:03-2:27 — Show evidence and DataHub writeback
+
+**On screen**
+
+- Show `6 / 6` verified.
+- Show the final DataHub status `VERIFIED`.
+- Point to the execution timeline and evidence scorecard.
+
+**Narration**
+
+> All six targets are verified. The supported DataHub global-tags writeback was
+> immediately reread through MCP. The scrubbed receipt and run ledger are stored
+> under this run's immutable evidence path, so a later run cannot replace them.
+
+### 2:27-2:42 — Close with adoption
+
+**On screen**
+
+- Switch to <https://github.com/amathias/lineage-lifeboat>.
+- Show the README, examples, and Apache-2.0 license.
+
+**Narration**
+
+> The public repository includes the adapters, tests, generated plan and report,
+> and a local demo that needs no paid infrastructure. Lineage Lifeboat restores
+> trust in dependency order.
+
+Stop recording by **2:42**. Do not fill unused time.
+
+## On-screen proof checklist
+
+The main take must visibly show:
+
+- [ ] the public Lineage Lifeboat application;
+- [ ] eight catalog assets;
+- [ ] six unavailable recovery targets after the outage;
+- [ ] healthy `raw.customers`;
+- [ ] excluded `inventory.forecast`;
+- [ ] context mode `verified live datahub mcp`;
+- [ ] five recovery waves;
+- [ ] exact-plan approval;
+- [ ] six verified execution steps;
+- [ ] DataHub status `VERIFIED`;
+- [ ] the public GitHub repository.
+
+## Truthful claims card
+
+| What is shown | Allowed claim |
+|---|---|
+| DuckDB and artifact recovery | executed and validated against a disposable local estate |
+| DataHub context | live only when the run shows `verified live datahub mcp` |
+| DataHub writeback | supported `globalTags` update verified by immediate MCP reread |
+| Approval | exact persisted plan ID approved before execution |
+| Resume | tested and implemented; verified steps are not rerun |
+| Cloud failover | not performed |
+| Production autonomy | not claimed |
+| RPO/RTO | not guaranteed |
+
+## Retake procedure
+
+For every retake:
+
+1. Stop the previous recording.
+2. Increment the run ID suffix, for example from `devpost-final-001` to
+   `devpost-final-002`.
+3. Refresh the public application.
+4. Click **Initialize estate** before triggering another outage.
+5. Repeat the public preflight.
+
+Never reuse a completed live run ID. Per-run DataHub evidence is immutable by
+design, and a new take should receive a new evidence directory.
+
+## Failure handling
+
+- If a step fails, keep the failure only for a separate optional engineering
+  clip. Do not include an unreliable failure injection in the main take.
+- If the UI offers **Resume recovery**, a retake may demonstrate it only after
+  the primary under-three-minute video is complete.
+- If DataHub status is `NOT_CONFIGURED` or `FAILED`, state that result honestly;
+  do not narrate a verified live writeback.
+- Do not open raw receipt storage or copy hashes from a private runtime during
+  recording. Public evidence boundaries are documented in the repository.
+
+## Post-recording review
+
+- [ ] Runtime is below 2:59.
+- [ ] Text is legible at normal playback speed.
+- [ ] The app performs the workflow; the video is not a slide-only presentation.
+- [ ] DataHub is visibly part of both input and output.
+- [ ] Real local execution is distinguished from unperformed cloud recovery.
+- [ ] No secret, token, environment variable, notification, private tab, or AWS
+      identifier is visible.
+- [ ] No copyrighted music or third-party footage is present.
+- [ ] Captions and narration say “DataHub-powered,” not “built by DataHub.”
+- [ ] The final uploaded video is public and playable while signed out.
+- [ ] The Devpost project URL is
+      <https://lifeboat.datahub-hackathon.aaronmathias.com>.
+- [ ] The Devpost repository URL is
+      <https://github.com/amathias/lineage-lifeboat>.

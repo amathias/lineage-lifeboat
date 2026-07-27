@@ -403,3 +403,17 @@ Immutable evidence retention is live-closed with two public verified runs. Remai
 - Current deployed application code/image: exact immutable-evidence candidate `a304df864a9eedff91862d0d4642484f0ab89984`.
 - Application rollback: return to `c92488300023fc65660499b3406fd2e4db76fcbc`.
 - DataHub fixture rollback remains the confirmed `reset-datahub` command inherited from candidate `f00c48362bcb6d09737c2809f89dea7675682075`; never use the reset implementation from `12ca7b9a...`, and never use a global DataHub reset.
+
+## Final submission assets
+
+- `SUBMISSION.md` contains judge-ready Devpost copy with the actual public
+  application and repository URLs, category fit, architecture, setup/adoption,
+  challenges, accomplishments, limitations, and coordinator-verified live
+  evidence boundaries.
+- `docs/DEMO_RUNBOOK.md` is the canonical 2:42 public-app recording sequence,
+  including preflight, exact narration, visible proof, retake rules, and
+  public-safety review.
+- No product code, tests, dependencies, runtime configuration, deployment, or
+  existing evidence changed in this documentation-only milestone.
+- Remaining submission work is to record and upload the public video, paste the
+  reviewed copy into Devpost, and perform the final signed-out link check.
