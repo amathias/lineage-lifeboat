@@ -37,6 +37,21 @@ def test_foreign_urn_fails_closed() -> None:
         _policy().assert_asset(foreign)
 
 
+@pytest.mark.parametrize(
+    "urn",
+    [
+        "urn:li:dataset:(urn:li:dataPlatform:lifeboat.duckdb,other.raw.orders,PROD)",
+        "urn:li:dataset:(urn:li:dataPlatform:duckdb,other.raw.orders,lifeboat.PROD)",
+        "urn:li:dataset:(urn:li:dataPlatform:duckdb,other.lifeboat.raw.orders,PROD)",
+        "urn:li:dataset:(urn:li:dataPlatform:duckdb,lifeboat.,PROD)",
+        "not-a-datahub-urn,lifeboat.raw.orders",
+    ],
+)
+def test_prefix_outside_dataset_name_position_fails_closed(urn: str) -> None:
+    with pytest.raises(NamespaceViolationError, match="outside"):
+        _policy().assert_urn(urn)
+
+
 def test_missing_project_tag_fails_closed() -> None:
     snapshot = _snapshot()
     untagged = snapshot.assets[0].model_copy(update={"tags": ()})

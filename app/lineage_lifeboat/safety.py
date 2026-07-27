@@ -10,6 +10,15 @@ class NamespaceViolationError(ValueError):
     """Raised when DataHub context falls outside the project allocation."""
 
 
+DATASET_URN_PATTERN = re.compile(
+    r"^urn:li:dataset:\("
+    r"urn:li:dataPlatform:[^,()]+,"
+    r"(?P<dataset_name>[^,()]+),"
+    r"[^,()]+"
+    r"\)$"
+)
+
+
 @dataclass(frozen=True, slots=True)
 class DataHubScopePolicy:
     domain: str
@@ -17,8 +26,9 @@ class DataHubScopePolicy:
     urn_prefix: str
 
     def assert_urn(self, urn: str) -> None:
-        prefix_pattern = rf"[\(,]{re.escape(self.urn_prefix)}"
-        if not re.search(prefix_pattern, urn):
+        match = DATASET_URN_PATTERN.fullmatch(urn)
+        dataset_name = match.group("dataset_name") if match else ""
+        if not dataset_name.startswith(self.urn_prefix) or dataset_name == self.urn_prefix:
             raise NamespaceViolationError(
                 f"URN is outside the {self.urn_prefix!r} namespace: {urn}"
             )

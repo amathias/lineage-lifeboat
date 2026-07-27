@@ -3,12 +3,38 @@
 **A DataHub-powered recovery compiler that turns live lineage into an approved,
 dependency-correct, executable recovery program.**
 
+[Open the live judge console](https://lifeboat.datahub-hackathon.aaronmathias.com) ·
+[View the source](https://github.com/amathias/lineage-lifeboat) ·
+[Follow the under-three-minute recording runbook](docs/DEMO_RUNBOOK.md)
+
+Demo video: **pending recording and public upload**. The repository does not claim that a video
+exists yet.
+
 Lineage Lifeboat is built for incident commanders who need to restore trust, not
 just infrastructure. It binds a recovery plan to DataHub lineage, orders every
 step deterministically, executes real adapters against a disposable local data
 estate, validates every result, supports safe resume, and writes the verified
 outcome back through a supported DataHub `globalTags` update when live
 credentials are configured.
+
+## Architecture
+
+```mermaid
+flowchart LR
+    D["DataHub lineage + metadata"] --> C["Recovery compiler"]
+    O["Incident commander"] --> A["Exact-plan approval"]
+    C --> A
+    A --> E["Idempotent recovery adapters"]
+    E --> V["Independent validations"]
+    V --> L["Persistent execution ledger"]
+    V --> W["Verified DataHub writeback"]
+```
+
+## Three-step judge path
+
+1. Open the live console and initialize the disposable estate, then trigger the confirmed outage.
+2. Compile the DataHub-bound recovery DAG and approve its exact plan ID.
+3. Execute the adapters, inspect validation evidence, and confirm verified recovery and writeback.
 
 ## What judges can run
 
