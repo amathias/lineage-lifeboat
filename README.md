@@ -201,6 +201,11 @@ failure, no-token behavior, report evidence, and the end-to-end console API.
 
 ## API summary
 
+The OpenAPI contract and interactive Swagger/ReDoc pages are available in local, development, and
+test environments at `/api/openapi.json`, `/api/docs`, and `/api/redoc`. The unauthenticated public
+judge deployment disables those interactive routes: this repository remains the complete public
+API and self-hosting reference, while the hosted surface stays limited to the guided demo.
+
 | Method | Path | Purpose |
 |---|---|---|
 | `GET` | `/api/health` | process liveness only |

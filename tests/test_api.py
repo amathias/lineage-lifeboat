@@ -24,6 +24,21 @@ def _get(app, path: str) -> httpx.Response:
     return asyncio.run(request())
 
 
+def test_interactive_docs_are_local_only(tmp_path) -> None:
+    local = create_app(settings=replace(Settings.from_env({}), app_state_dir=tmp_path))
+    hosted = create_app(
+        settings=replace(
+            Settings.from_env({}),
+            app_env="hackathon",
+            app_state_dir=tmp_path,
+        )
+    )
+
+    assert _get(local, "/api/docs").status_code == 200
+    assert _get(hosted, "/api/docs").status_code == 404
+    assert _get(hosted, "/api/openapi.json").status_code == 404
+
+
 def _write_vertical_slice_receipt(
     settings: Settings, *, fingerprint: str | None = None
 ) -> None:

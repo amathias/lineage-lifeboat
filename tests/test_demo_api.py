@@ -32,6 +32,8 @@ def test_judge_console_runs_complete_approved_recovery(tmp_path: Path) -> None:
             page = await client.get("/")
             assert page.status_code == 200
             assert "Restore trust" in page.text
+            assert "PUBLIC DEMO" in page.text
+            assert "lifeboat.*" in page.text
 
             initialized = await client.post(
                 "/api/demo/initialize",

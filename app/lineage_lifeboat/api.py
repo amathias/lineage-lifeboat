@@ -207,8 +207,11 @@ def create_app(
     application = FastAPI(
         title="Lineage Lifeboat",
         version="0.1.0",
-        docs_url="/api/docs",
-        openapi_url="/api/openapi.json",
+        docs_url="/api/docs" if runtime_settings.app_env in {"development", "local", "test"} else None,
+        redoc_url="/api/redoc" if runtime_settings.app_env in {"development", "local", "test"} else None,
+        openapi_url="/api/openapi.json"
+        if runtime_settings.app_env in {"development", "local", "test"}
+        else None,
     )
 
     @application.get("/api/health", response_model=HealthResponse)
