@@ -1,5 +1,20 @@
 # Coordinator Handoff: Lineage Lifeboat
 
+## 2026-07-29 public-demo boundary closeout
+
+| Field | Verified value |
+|---|---|
+| Exact deployed product | `1831d5ab86ba2c1278bc9dd12843c157d4afe84d` |
+| Public endpoint | `https://lifeboat.datahub-hackathon.aaronmathias.com` |
+| Public acceptance | Root, health, and strong readiness returned 200 |
+| Browser acceptance | One prominent `PUBLIC DEMO` notice rendered above the workflow and identified the disposable estate, `lifeboat.*` allocation, no-production/no-personal-data boundary, and source/API/self-hosting link |
+| Hosted API documentation | `/api/docs`, `/api/redoc`, and `/api/openapi.json` returned 404 in `APP_ENV=hackathon`; local/development/test documentation remains enabled |
+| Verification | 57 tests passed, Ruff passed, GitHub Actions passed, exact `main` matched `origin/main` before promotion |
+
+This release changes presentation and public attack surface only. It does not replace or broaden
+the coordinator-owned live DataHub evidence below. The deployment seed was the documented local
+disposable-estate seed (`datahub_seeded=false`); no shared DataHub fixture was reseeded.
+
 ## Scope and ownership
 
 This project chat owns Lineage Lifeboat product code, tests, demo evidence, and submission behavior. The portfolio coordinator owns shared DataHub, AWS, promotion, secrets, tunnels, and live evidence capture. This milestone did not deploy, access EC2, or modify another workspace.
