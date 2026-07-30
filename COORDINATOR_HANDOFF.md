@@ -1,6 +1,6 @@
 # Coordinator Handoff: Lineage Lifeboat
 
-## 2026-07-29 anonymous mutation hardening — pending deployment
+## 2026-07-29 anonymous mutation hardening — deployed and verified
 
 - The published project slug is no longer an HTTP confirmation token.
 - Hosted mutations now require short-lived, cryptographically random, one-time confirmations
@@ -11,6 +11,11 @@
   surface without claiming to provide user authentication.
 - Verification: 61 tests passed with the documented `D:\pt` Windows ACL workaround; Ruff,
   JavaScript syntax, and whitespace checks passed.
+- Exact commit `76ecbe049efaa87516bbfa97fa663abc0897d333` passed GitHub Actions and was
+  promoted by the coordinator.
+- Public root, health, and strong readiness returned 200 after deployment and token refresh.
+  A mutation without a fresh confirmation returned 403. Shared response headers and the 64 KiB
+  proxy body limit were also verified from the public route.
 
 ## 2026-07-29 public-demo boundary closeout
 
