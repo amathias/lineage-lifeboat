@@ -93,7 +93,7 @@ idempotency keys.
 `raw.customers` remains a healthy prerequisite.
 `inventory.forecast` is deliberately unrelated and remains excluded.
 
-## How we built it
+## How I built it
 
 ```text
 Judge console / CLI
@@ -197,7 +197,7 @@ flow. The graph decides blast radius and ordering; policy decides what is safe;
 approval decides what may execute; validation decides when a consumer is ready;
 writeback makes the incident result available to the next engineer or agent.
 
-## Challenges we ran into
+## Challenges I ran into
 
 ### Making live MCP evidence complete
 
@@ -243,7 +243,7 @@ The public two-run gate proved run A remained verifiable after run B.
 - Kept the local workflow free of paid infrastructure and well below the
   three-minute demo ceiling.
 
-## What we learned
+## What I learned
 
 - Recovery readiness is a graph property, not a service-health property.
 - A successful mutation is not proof until the read path observes it.
