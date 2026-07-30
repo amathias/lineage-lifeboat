@@ -43,7 +43,7 @@ This project chat owns Lineage Lifeboat product code, tests, demo evidence, and 
 | Exact product candidate | `b1e89a518810ffb12eaad09b1fd15d2e7e9e87fc` |
 | Deployed candidate | unchanged: `a304df864a9eedff91862d0d4642484f0ab89984` |
 | Safety correction | dataset namespace validation now parses the DataHub dataset URN structurally and checks the dataset-name position; prefixes hidden in the platform, environment, or a foreign name fail closed |
-| Judge entrypoint | live/source/runbook links, truthful pending-video state, three-step journey, and Mermaid architecture are at the top of `README.md` |
+| Judge entrypoint | live/source/public-video/runbook links, three-step journey, and Mermaid architecture are at the top of `README.md` |
 | Continuous integration | `.github/workflows/ci.yml` runs Ruff plus the full test/coverage suite on pushes, pull requests, and manual dispatch |
 | Verification | 56 tests passed; 85% coverage; Ruff clean |
 | Exact-commit archive | strict UTF-8 README decode, wheel build, isolated install, and isolated import passed |
@@ -465,5 +465,6 @@ Immutable evidence retention is live-closed with two public verified runs. Remai
   public-safety review.
 - No product code, tests, dependencies, runtime configuration, deployment, or
   existing evidence changed in this documentation-only milestone.
-- Remaining submission work is to record and upload the public video, paste the
-  reviewed copy into Devpost, and perform the final signed-out link check.
+- The public 2:05 demo is available at <https://youtu.be/7UIM_Y9Uvg4> with published English
+  captions. Remaining submission work is to paste the reviewed copy and video URL into Devpost
+  and perform the final signed-out link check.
