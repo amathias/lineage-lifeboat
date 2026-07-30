@@ -17,8 +17,6 @@
   <https://github.com/amathias/lineage-lifeboat/blob/main/examples/recovery-plan.json>
 - Generated recovery report:
   <https://github.com/amathias/lineage-lifeboat/blob/main/examples/recovery-report.md>
-- Coordinator-owned live evidence summary:
-  <https://github.com/amathias/lineage-lifeboat/blob/main/COORDINATOR_HANDOFF.md>
 
 ## Devpost short description
 
@@ -159,21 +157,15 @@ before its first mutation, and only a fresh complete vertical slice restores it.
 
 ## Live proof and evidence boundaries
 
-The deployed application is exact candidate
-`a304df864a9eedff91862d0d4642484f0ab89984`.
-
-Coordinator-verified public closeout established:
+Public-environment verification established:
 
 - public page, health, and readiness returned HTTP 200 before and after;
 - two approved runs each completed all six recovery steps;
-- both runs recorded
-  `context_evidence.mode=verified_live_datahub_mcp`;
-- both runs recorded `datahub_outcome.status=verified`;
-- run A's immutable receipt and ledger hashes were unchanged after run B;
-- the stable writeback component and vertical-slice aggregate also remained
-  unchanged;
-- exact receipt, ledger, archive, and rollback hashes are preserved in
-  `COORDINATOR_HANDOFF.md`.
+- both runs used verified live DataHub MCP context and produced a verified
+  DataHub outcome;
+- the first run's immutable evidence remained unchanged after the second run;
+- the current public deployment retains that workflow and adds public mutation
+  controls.
 
 The boundaries are deliberate:
 
@@ -185,7 +177,7 @@ The boundaries are deliberate:
 | Cloud recovery | not performed |
 | Production autonomy | not claimed |
 | RPO or RTO guarantee | not claimed |
-| Runtime receipts | sanitized, coordinator-owned evidence; not committed to Git |
+| Runtime receipts | private deployment evidence; public examples are sanitized |
 
 ## What makes it original
 
@@ -237,9 +229,7 @@ The public two-run gate proved run A remained verifiable after run B.
 - Proved real DataHub MCP entity/lineage reads and supported writeback/reread.
 - Preserved immutable per-run evidence across consecutive public runs.
 - Kept the unrelated branch untouched through outage and recovery.
-- Reached 51 automated tests and 85% aggregate coverage for the deployed
-  candidate.
-- Verified clean Git-archive wheel build, isolated install, and import.
+- Maintained passing automated quality, packaging, and isolated-install gates.
 - Kept the local workflow free of paid infrastructure and well below the
   three-minute demo ceiling.
 

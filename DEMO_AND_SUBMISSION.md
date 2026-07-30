@@ -125,5 +125,5 @@ The exact timed click path and truthful real/simulated labels are maintained in
 The local demo uses four real adapters against disposable DuckDB and JSON
 artifacts. `scripts/verify_judge_demo.py` recreates the estate in a temporary
 directory, executes all six recovery steps, verifies every required result, and
-fails if runtime reaches three minutes. Committed evidence is available under
+fails if runtime reaches three minutes. Sanitized example evidence is available under
 `examples/` and can be regenerated with `scripts/generate_examples.py`.

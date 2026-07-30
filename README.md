@@ -119,21 +119,17 @@ The project uses open-source DataHub plus the DataHub MCP Server:
 
 - eight exact `lifeboat.` dataset fixtures and six lineage edges;
 - entity and complete direct-lineage reads through MCP;
-- deterministic planning bound to graph fingerprint
-  `72accff2049653af2a7134d41559d3bb0e8ad9a27edefe2ed986155b85dc524b`;
+- deterministic planning bound to a graph fingerprint;
 - supported DataHub RestEmitter `MetadataChangeProposal` writeback using the
   `globalTags` aspect;
 - immediate MCP reread proving the marker tag;
 - namespace-scoped reset with fail-closed readiness evidence.
 
-The deployed immutable-evidence candidate
-`a304df864a9eedff91862d0d4642484f0ab89984` passed the coordinator's two-run
-public live gate. Both approved recoveries completed six of six steps with
-verified live DataHub MCP context and verified writeback/reread. Run A's receipt
-and ledger hashes remained unchanged after run B, while the stable writeback
-component and vertical-slice aggregate also remained unchanged. Exact paths,
-hashes, endpoint checks, archive details, and rollback candidate are recorded in
-`COORDINATOR_HANDOFF.md`.
+Public-environment verification completed two approved recoveries, each finishing
+all six steps with verified live DataHub MCP context and verified
+writeback/reread. The first run's immutable evidence remained unchanged after
+the second run. Public examples are sanitized; private runtime evidence and
+credentials are not included in the repository.
 
 For a fresh live integration run, provide the token out of band:
 
