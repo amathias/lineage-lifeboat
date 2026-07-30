@@ -1,5 +1,17 @@
 # Coordinator Handoff: Lineage Lifeboat
 
+## 2026-07-29 anonymous mutation hardening — pending deployment
+
+- The published project slug is no longer an HTTP confirmation token.
+- Hosted mutations now require short-lived, cryptographically random, one-time confirmations
+  bound to the requesting client and exact operation.
+- All hosted mutation routes share a process-local single-flight guard, one-second cooldown, and
+  per-client/global sliding-window limits, with `429` and `Retry-After` on capacity rejection.
+- CLI confirmation and approval semantics are unchanged. The controls protect the public judge
+  surface without claiming to provide user authentication.
+- Verification: 61 tests passed with the documented `D:\pt` Windows ACL workaround; Ruff,
+  JavaScript syntax, and whitespace checks passed.
+
 ## 2026-07-29 public-demo boundary closeout
 
 | Field | Verified value |

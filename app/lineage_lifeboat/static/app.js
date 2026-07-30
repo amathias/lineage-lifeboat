@@ -2,10 +2,36 @@ const $ = (id) => document.getElementById(id);
 let activeRun = null;
 
 async function call(path, options = {}) {
-  const response = await fetch(path, {headers: {"Content-Type": "application/json"}, ...options});
+  const headers = {"Content-Type": "application/json", ...(options.headers || {})};
+  const response = await fetch(path, {...options, headers});
   const payload = await response.json();
-  if (!response.ok) throw new Error(payload.detail || `HTTP ${response.status}`);
+  if (!response.ok) {
+    const error = new Error(payload.detail || `HTTP ${response.status}`);
+    error.status = response.status;
+    error.retryAfter = Number(response.headers.get("Retry-After") || 0);
+    throw error;
+  }
   return payload;
+}
+
+const wait = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
+
+async function mutate(path, operation, options = {}) {
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const challenge = await call("/api/demo/confirmation", {
+      method: "POST",
+      body: JSON.stringify({operation}),
+    });
+    try {
+      return await call(path, {
+        ...options,
+        headers: {...(options.headers || {}), "X-Demo-Confirmation": challenge.confirmation},
+      });
+    } catch (error) {
+      if (error.status !== 429 || !error.retryAfter || attempt === 1) throw error;
+      await wait((error.retryAfter * 1000) + 100);
+    }
+  }
 }
 
 function notice(message, error = false) {
@@ -52,28 +78,28 @@ async function action(fn) {
 }
 
 $("initialize").onclick = () => action(async () => {
-  await call("/api/demo/initialize", {method: "POST", body: JSON.stringify({confirm_project: "lineage-lifeboat"})});
+  await mutate("/api/demo/initialize", "initialize", {method: "POST", body: "{}"});
   await refreshGraph(); notice("Disposable estate initialized. Eight assets are healthy.");
 });
 $("outage").onclick = () => action(async () => {
-  await call("/api/demo/outage", {method: "POST", body: JSON.stringify({confirm_project: "lineage-lifeboat"})});
+  await mutate("/api/demo/outage", "outage", {method: "POST", body: "{}"});
   await refreshGraph(); notice("Outage executed locally. Six connected assets are unavailable; unrelated inventory is untouched.");
 });
 $("compile").onclick = () => action(async () => {
   const runId = $("run-id").value.trim();
-  const run = await call("/api/recovery/plan", {method: "POST", body: JSON.stringify({run_id: runId, requester: "demo-incident-commander"})});
+  const run = await mutate("/api/recovery/plan", "plan", {method: "POST", body: JSON.stringify({run_id: runId, requester: "demo-incident-commander"})});
   renderRun(run); notice(`Plan ${run.plan.plan_id} compiled. Review dependency waves, then approve the exact plan.`);
 });
 $("approve").onclick = () => action(async () => {
   if (!activeRun) throw new Error("Compile a plan first.");
-  const run = await call(`/api/recovery/${activeRun.run_id}/approve`, {method: "POST", body: JSON.stringify({plan_id: activeRun.plan.plan_id, approved_by: "demo-incident-commander"})});
+  const run = await mutate(`/api/recovery/${activeRun.run_id}/approve`, "approve", {method: "POST", body: JSON.stringify({plan_id: activeRun.plan.plan_id, approved_by: "demo-incident-commander"})});
   renderRun(run); notice("Exact plan approved by the incident commander. Execution is now enabled.");
 });
 $("execute").onclick = () => action(async () => {
   if (!activeRun) throw new Error("Compile and approve a plan first.");
   notice("Executing dependency-correct adapters and required validations…");
   const endpoint = activeRun.status === "failed" ? "resume" : "execute";
-  const run = await call(`/api/recovery/${activeRun.run_id}/${endpoint}`, {method: "POST", body: "{}"});
+  const run = await mutate(`/api/recovery/${activeRun.run_id}/${endpoint}`, endpoint, {method: "POST", body: "{}"});
   renderRun(run); await refreshGraph();
   notice(run.status === "completed" ? "Recovery complete. Every step is verified and report evidence is persisted." : "Execution failed closed. Correct the local fault and resume; verified steps will not rerun.", run.status !== "completed");
 });

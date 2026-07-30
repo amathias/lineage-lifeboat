@@ -155,3 +155,21 @@ completed two approved 6/6 recovery runs. Run A's receipt and ledger hashes were
 unchanged after run B, and the stable writeback component plus vertical-slice
 aggregate hashes were also unchanged. This independently verified the decision's
 per-run immutability and readiness-isolation contract.
+
+## ADR-012: Public mutations use one-time capabilities and bounded admission
+
+**Status:** Accepted
+
+**Date:** 2026-07-29
+
+The project slug remains a CLI guard against operator error, but is no longer accepted as the
+HTTP mutation confirmation. On hosted environments, the browser must first obtain a short-lived
+cryptographic capability bound to its client identity and one exact operation. The capability is
+consumed on first use and cannot authorize another operation or be replayed.
+
+Every hosted mutation is also serialized through one process-local single-flight guard, followed
+by a cooldown, with per-client and global sliding-window limits. Capacity responses are `429` with
+`Retry-After`; missing, expired, mismatched, or replayed capabilities are `403`. Local and test
+workflows retain the same API sequence without public admission limits. These controls resist
+blind scanners, cross-site requests, accidental replay, overlapping outage/recovery actions, and
+unbounded anonymous state creation; they are not represented as user authentication.

@@ -1,5 +1,7 @@
 # Lineage Lifeboat
 
+[![CI](https://github.com/amathias/lineage-lifeboat/actions/workflows/ci.yml/badge.svg)](https://github.com/amathias/lineage-lifeboat/actions/workflows/ci.yml)
+
 **A DataHub-powered recovery compiler that turns live lineage into an approved,
 dependency-correct, executable recovery program.**
 
@@ -16,6 +18,11 @@ step deterministically, executes real adapters against a disposable local data
 estate, validates every result, supports safe resume, and writes the verified
 outcome back through a supported DataHub `globalTags` update when live
 credentials are configured.
+
+![Lineage Lifeboat console showing all six recovery steps verified and DataHub writeback verified](docs/assets/judge-console.png)
+
+_Recovery evidence: 6/6 dependency-ordered steps verified, supported DataHub writeback verified,
+and the unrelated branch excluded._
 
 ## Architecture
 

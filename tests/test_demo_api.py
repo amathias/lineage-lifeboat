@@ -37,14 +37,14 @@ def test_judge_console_runs_complete_approved_recovery(tmp_path: Path) -> None:
 
             initialized = await client.post(
                 "/api/demo/initialize",
-                json={"confirm_project": "lineage-lifeboat"},
+                json={},
             )
             assert initialized.status_code == 200
             assert initialized.json()["asset_state"]["healthy_asset_count"] == 8
 
             outage = await client.post(
                 "/api/demo/outage",
-                json={"confirm_project": "lineage-lifeboat"},
+                json={},
             )
             assert outage.status_code == 200
             assert len(outage.json()["removed_asset_urns"]) == 6
