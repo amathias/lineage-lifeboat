@@ -9,7 +9,7 @@
   <https://lifeboat.datahub-hackathon.aaronmathias.com>
 - Public source repository:
   <https://github.com/amathias/lineage-lifeboat>
-- Public demo video (2:05, English captions):
+- Public demo video (2:23, English captions):
   <https://youtu.be/suA7xEgZmqw>
 - Under-three-minute recording runbook:
   <https://github.com/amathias/lineage-lifeboat/blob/main/docs/DEMO_RUNBOOK.md>
