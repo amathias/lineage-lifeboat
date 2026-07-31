@@ -10,7 +10,7 @@
 - Public source repository:
   <https://github.com/amathias/lineage-lifeboat>
 - Public demo video (2:05, English captions):
-  <https://youtu.be/7UIM_Y9Uvg4>
+  <https://youtu.be/suA7xEgZmqw>
 - Under-three-minute recording runbook:
   <https://github.com/amathias/lineage-lifeboat/blob/main/docs/DEMO_RUNBOOK.md>
 - Generated recovery plan:

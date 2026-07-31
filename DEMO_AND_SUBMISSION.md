@@ -107,7 +107,7 @@ Prefer: “Compiles and verifies cross-platform recovery actions from DataHub co
 
 ## Recording checklist
 
-- [x] Video is public and under three minutes: <https://youtu.be/7UIM_Y9Uvg4> (2:05).
+- [x] Video is public and under three minutes: <https://youtu.be/suA7xEgZmqw> (2:23).
 - [ ] Text is legible at normal playback speed.
 - [ ] No secrets, notifications, private tabs, or copyrighted music appear.
 - [ ] The app is shown functioning, not just slides.

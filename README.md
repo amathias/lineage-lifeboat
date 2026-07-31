@@ -7,10 +7,10 @@ dependency-correct, executable recovery program.**
 
 [Open the live judge console](https://lifeboat.datahub-hackathon.aaronmathias.com) ·
 [View the source](https://github.com/amathias/lineage-lifeboat) ·
-[Watch the public demo](https://youtu.be/7UIM_Y9Uvg4) ·
+[Watch the public demo](https://youtu.be/suA7xEgZmqw) ·
 [Follow the under-three-minute recording runbook](docs/DEMO_RUNBOOK.md)
 
-Demo video: **[public on YouTube](https://youtu.be/7UIM_Y9Uvg4)** (2:05, English captions).
+Demo video: **[public on YouTube](https://youtu.be/suA7xEgZmqw)** (2:23, English captions).
 
 Lineage Lifeboat is built for incident commanders who need to restore trust, not
 just infrastructure. It binds a recovery plan to DataHub lineage, orders every

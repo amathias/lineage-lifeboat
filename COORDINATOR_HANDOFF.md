@@ -465,6 +465,6 @@ Immutable evidence retention is live-closed with two public verified runs. Remai
   public-safety review.
 - No product code, tests, dependencies, runtime configuration, deployment, or
   existing evidence changed in this documentation-only milestone.
-- The public 2:05 demo is available at <https://youtu.be/7UIM_Y9Uvg4> with published English
+- The public 2:23 demo is available at <https://youtu.be/suA7xEgZmqw> with published English
   captions. Remaining submission work is to paste the reviewed copy and video URL into Devpost
   and perform the final signed-out link check.
