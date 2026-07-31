@@ -280,6 +280,20 @@ Start the console:
 
 Then open <http://localhost:8101>.
 
+macOS/Linux equivalent:
+
+```bash
+git clone https://github.com/amathias/lineage-lifeboat.git
+cd lineage-lifeboat
+python3 -m venv .venv
+.venv/bin/python -m pip install -e '.[dev]'
+.venv/bin/python -m lineage_lifeboat.cli demo-run \
+  --run-id judge-demo-001 \
+  --approved-by demo-incident-commander \
+  --confirm-project lineage-lifeboat
+.venv/bin/python -m lineage_lifeboat
+```
+
 To adopt the pattern for another estate:
 
 1. Ingest the recovery-relevant entities, lineage, owners, domain, tags, and

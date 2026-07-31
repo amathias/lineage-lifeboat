@@ -56,6 +56,18 @@ python -m venv .venv
   --confirm-project lineage-lifeboat
 ```
 
+macOS/Linux:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -e ".[dev]"
+python -m lineage_lifeboat.cli demo-run \
+  --run-id judge-demo-001 \
+  --approved-by demo-incident-commander \
+  --confirm-project lineage-lifeboat
+```
+
 The command really executes this sequence:
 
 1. Creates a disposable embedded DuckDB commerce estate and derived artifacts.
@@ -80,6 +92,12 @@ Start the service and open <http://localhost:8101>:
 
 ```powershell
 .\.venv\Scripts\python.exe -m lineage_lifeboat
+```
+
+On macOS/Linux after activating the environment:
+
+```bash
+python -m lineage_lifeboat
 ```
 
 The single-screen console exposes the complete story without a terminal:
